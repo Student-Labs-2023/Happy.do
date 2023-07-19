@@ -4,15 +4,14 @@ import numpy as np
 
 """ Создание графиков """
 plt.style.use(
-    r"D:\Файлики\StudentLabs\tgbot\utiles\Statistics\Config\pitayasmoothie-dark.mplstyle")  # Утанавливает стиль
+    fr"{os.getcwd()}\tgbot\utiles\Statistics\Config\pitayasmoothie-dark.mplstyle")  # Утанавливает стиль
 matplotlib.rcParams['font.family'] = ["Segoe UI Emoji", "DejaVu Sans"]  # Меняет шрифт в стиле
 matplotlib.rcParams['font.size'] = 13  # Меняет размер шрифта в стиле
 fig, ax = plt.subplots()  # устанавливает размеры гистограммы
 
-""" Круговая диаграмма """
-
 
 def createCircularChart(ID, labels, sizes):
+    """ Круговая диаграмма """
     # plt.suptitle("Наиболее часто используемые смайлики", fontname="Franklin Gothic Medium",
     #              fontsize=20)
 
@@ -34,13 +33,11 @@ def createCircularChart(ID, labels, sizes):
     fig.savefig(os.getcwd() + fr'\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg', transparent=False, dpi=200,
                 bbox_inches="tight")  # сохранение картинки
 
-    return rf"{os.getcwd()}\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg"
-
-
-""" Гистограмма """
+    return fr"{os.getcwd()}\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg"
 
 
 def createBarChart(ID, labels, days):
+    """ Гистограмма """
     plt.suptitle("Наиболее часто используемые смайлики", fontname="Franklin Gothic Medium",
                  fontsize=20)
 
@@ -58,6 +55,3 @@ def createBarChart(ID, labels, days):
                 bbox_inches="tight")  # сохранение картинки
 
     return rf"{os.getcwd()}\tgbot\utiles\Statistics\Picture\Bar{str(ID)}.jpg"
-
-# createCircularChart(1)
-# plt.show()

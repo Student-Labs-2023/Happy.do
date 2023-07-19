@@ -54,11 +54,14 @@ async def start(message: types.Message):
 @dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = statistics.analiticData(user_id)  # путь к картинке со статой
-    await message.answer("Ваша статистика за неделю")
-    photo = InputFile(pathToPicture)
-    await bot.send_photo(chat_id=message.chat.id, photo=photo)
-    os.remove(pathToPicture)  # удаляем файл с картинкой
+    pathToPicture = await statistics.analiticData(user_id)  # путь к картинке со статой
+    if pathToPicture != "absent":
+        await message.answer("Ваша статистика за неделю")
+        photo = InputFile(pathToPicture)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        os.remove(pathToPicture)  # удаляем файл с картинкой
+    else:
+        await message.answer("Статистика отсутствует. Вы еще ни разу не вводили смайлики.")
 
 
 def show_button(list_menu):
@@ -97,6 +100,7 @@ async def button(callback_query: types.CallbackQuery):
     date_day = date.today()
     date_name = calendar.day_name[date_day.weekday()]
     await database.addOrChangeSmile(callback_query.from_user.id, date_name, '' if '✅' in query.data else query.data)
+
 
 
 if __name__ == '__main__':
