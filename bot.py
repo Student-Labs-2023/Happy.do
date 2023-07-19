@@ -32,13 +32,14 @@ async def on_shutdown(dispatcher):
 
 
 smileys = [
-    '😀', '😃', '😄', '😁', '😆', '😅',
-    '🙂', '😂', '🤣', '😊', '😇', '🙃',
-    '😉', '😌', '😘', '😍', '😗', '😙',
-    '😚', '😋', '😛', '😜', '😝', '🤪',
-    '🤨', '🤢', '🤮', '🤧', '🥱', '🥶',
-    '😤', '😱', '😓', '😡', '🥵', '🤬',
+    ["😊", "😀", "🤪", "😍", "😅",
+     "😆", "😉", "😌", "😎", "😏",
+     "🤔", "😒", "😔", "😕", "😖",
+     "🤢", "😟", "😠", "😡", "😢",
+     "😣", "😥", "😪", "😫", "😴"]
 ]
+"""списки для кнопок"""
+buttons_menu = ["Статистика", "Выбрать смайлик"]
 
 
 @dp.message_handler(commands=['start'])
@@ -47,9 +48,10 @@ async def start(message: types.Message):
     user_exists = await database.checkUser(str(message.from_user.id))
     if not user_exists:
         await database.createUser(message.from_user.id, message.from_user.username)
+    await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
-@dp.message_handler(commands=["stat"])
+@dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
     pathToPicture = await statistics.analiticData(user_id)  # путь к картинке со статой
@@ -62,8 +64,18 @@ async def statisticUser(message: types.Message):
         await message.answer("Статистика отсутствует. Вы еще ни разу не вводили смайлики.")
 
 
-def show_button(list_emoji):
-    keyboard = InlineKeyboardMarkup(row_width=6)
+def show_button(list_menu):
+    """Принимает список и превращает его в кнопки"""
+    """создает кнопки для меню"""
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(*list_menu)
+    return keyboard
+
+
+def show_inline_button(list_emoji):
+    """Принимает список и превращает его в инлайн кнопки кнопки"""
+    "создает инлайн кнопки для показа смайликов"
+    keyboard = InlineKeyboardMarkup(row_width=5)
     buttons = [InlineKeyboardButton(smiley, callback_data=smiley) for smiley in list_emoji]
     keyboard.add(*buttons)
     return keyboard
@@ -73,9 +85,9 @@ def add_checkmark(lst, variable):
     return [elem + "✅" if elem == variable else elem for elem in lst]
 
 
-@dp.message_handler(commands=['emoji'])
+@dp.message_handler(text=["Выбрать смайлик"])
 async def show_emoji(message: types.Message):
-    await message.reply('Выберите смайлик:', reply_markup=show_button(smileys))
+    await message.reply('Выберите смайлик:', reply_markup=show_inline_button(smileys))
 
 
 @dp.callback_query_handler()
@@ -84,10 +96,11 @@ async def button(callback_query: types.CallbackQuery):
     await query.answer()
     new_emoji_list = add_checkmark(smileys, query.data)
     await bot.answer_callback_query(callback_query.id)
-    await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_button(new_emoji_list))
-    date_day = str(date.today())
-    # date_name = calendar.day_name[date_day.weekday()]
-    await database.addOrChangeSmile(callback_query.from_user.id, date_day, '' if '✅' in query.data else query.data)
+    await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_inline_button(new_emoji_list))
+    date_day = date.today()
+    date_name = calendar.day_name[date_day.weekday()]
+    await database.addOrChangeSmile(callback_query.from_user.id, date_name, '' if '✅' in query.data else query.data)
+
 
 
 if __name__ == '__main__':
