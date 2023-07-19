@@ -9,8 +9,9 @@ matplotlib.rcParams['font.family'] = ["Segoe UI Emoji", "DejaVu Sans"]  # Мен
 matplotlib.rcParams['font.size'] = 13  # Меняет размер шрифта в стиле
 fig, ax = plt.subplots()  # устанавливает размеры гистограммы
 
-""" Круговая диаграмма """
+
 def createCircularChart(ID, labels, sizes):
+    """ Круговая диаграмма """
     # plt.suptitle("Наиболее часто используемые смайлики", fontname="Franklin Gothic Medium",
     #              fontsize=20)
 
@@ -35,10 +36,8 @@ def createCircularChart(ID, labels, sizes):
     return fr"{os.getcwd()}\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg"
 
 
-""" Гистограмма """
-
-
 def createBarChart(ID, labels, days):
+    """ Гистограмма """
     plt.suptitle("Наиболее часто используемые смайлики", fontname="Franklin Gothic Medium",
                  fontsize=20)
 
@@ -56,6 +55,3 @@ def createBarChart(ID, labels, days):
                 bbox_inches="tight")  # сохранение картинки
 
     return rf"{os.getcwd()}\tgbot\utiles\Statistics\Picture\Bar{str(ID)}.jpg"
-
-# createCircularChart(1)
-# plt.show()

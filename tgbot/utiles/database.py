@@ -1,7 +1,5 @@
-import asyncio
 import json
 
-import config
 from google.cloud.firestore import AsyncClient
 from google.oauth2 import service_account
 
@@ -24,7 +22,6 @@ async def createUser(ID, name):
     #     {"Monday": "", "Tuesday": "", "Wednesday": "", "Thursday": "", "Friday": "", "Saturday": "", "Sunday": ""})
 
 
-
 async def checkUser(ID: str) -> bool:
     info = await firestore_client.collection("Users").document(ID).get()
     return info.to_dict() is not None
@@ -45,7 +42,6 @@ async def addOrChangeSmile(ID, day, smile):
     #     await info.set({day: smile})
     # except Exception: # проверить название ошибки
     #     await info.update({day: smile})
-
 
 
 async def delUser(ID):
