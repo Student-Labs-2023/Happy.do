@@ -52,11 +52,14 @@ async def start(message: types.Message):
 @dp.message_handler(commands=["stat"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = statistics.analiticData(user_id)  # путь к картинке со статой
-    await message.answer("Ваша статистика за неделю")
-    photo = InputFile(pathToPicture)
-    await bot.send_photo(chat_id=message.chat.id, photo=photo)
-    os.remove(pathToPicture)  # удаляем файл с картинкой
+    pathToPicture = await statistics.analiticData(user_id)  # путь к картинке со статой
+    if pathToPicture != "absent":
+        await message.answer("Ваша статистика за неделю")
+        photo = InputFile(pathToPicture)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        os.remove(pathToPicture)  # удаляем файл с картинкой
+    else:
+        await message.answer("Статистика отсутствует. Вы еще ни разу не вводили смайлики.")
 
 
 def show_button(list_emoji):
@@ -82,9 +85,9 @@ async def button(callback_query: types.CallbackQuery):
     new_emoji_list = add_checkmark(smileys, query.data)
     await bot.answer_callback_query(callback_query.id)
     await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_button(new_emoji_list))
-    date_day = date.today()
-    date_name = calendar.day_name[date_day.weekday()]
-    await database.addOrChangeSmile(callback_query.from_user.id, date_name, '' if '✅' in query.data else query.data)
+    date_day = str(date.today())
+    # date_name = calendar.day_name[date_day.weekday()]
+    await database.addOrChangeSmile(callback_query.from_user.id, date_day, '' if '✅' in query.data else query.data)
 
 
 if __name__ == '__main__':
