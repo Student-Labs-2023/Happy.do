@@ -56,7 +56,7 @@ async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
     pathToPicture = await statistics.analiticData(user_id)  # путь к картинке со статой
     if pathToPicture != "absent":
-        await message.answer("Ваша статистика за неделю")
+        await message.answer("Ваша статистика за всё время")
         photo = InputFile(pathToPicture)
         await bot.send_photo(chat_id=message.chat.id, photo=photo)
         os.remove(pathToPicture)  # удаляем файл с картинкой
