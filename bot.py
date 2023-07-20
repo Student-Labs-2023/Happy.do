@@ -96,11 +96,10 @@ async def button(callback_query: types.CallbackQuery):
     await query.answer()
     new_emoji_list = add_checkmark(smileys, query.data)
     await bot.answer_callback_query(callback_query.id)
-    await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_inline_button(new_emoji_list))
-    date_day = date.today()
-    date_name = calendar.day_name[date_day.weekday()]
-    await database.addOrChangeSmile(callback_query.from_user.id, date_name, '' if '✅' in query.data else query.data)
 
+    await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_inline_button(new_emoji_list))
+    date_day = str(date.today())
+    await database.addOrChangeSmile(callback_query.from_user.id, date_day, '' if '✅' in query.data else query.data)
 
 
 if __name__ == '__main__':
