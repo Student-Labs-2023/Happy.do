@@ -35,7 +35,7 @@ async def analiticData(ID):
 
     """ Получаем id макс значений """
     for i in range(len(values)):
-        if values[i] in maxValues:
+        if (values[i] in maxValues) and (len(maxKeys) < 4 if size == 6 else 5):
             maxKeys.append(keys[i])
         summ += values[i]
     print(maxKeys)
@@ -50,9 +50,9 @@ async def analiticData(ID):
 
 
     """ Части в процентном соотношении """
-    sizes = [round(maxValues[i] / summ, 1) for i in range(4 if size == 6 else size)]
+    sizes = [round(maxValues[i] / summ, 2) for i in range(4 if size == 6 else size)]
     if size == 6:
-        sizes.append((summ - sum(maxValues)) / summ)
+        sizes.append(round((summ - sum(maxValues)) / summ, 2))
         maxKeys.append('Другие')
     print(sizes)
 
