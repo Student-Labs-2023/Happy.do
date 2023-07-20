@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import os
 from datetime import date
@@ -27,10 +28,10 @@ WEBAPP_PORT = config.WEBAPP_PORT
 
 async def on_startup(dispatcher):
     await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
-    stop_event = asyncio.Event()
-    scheduler_task = asyncio.create_task(scheduler(stop_event))
+    # stop_event = asyncio.Event()
+    # scheduler_task = asyncio.create_task(scheduler(stop_event))
 
-    # asyncio.create_task(scheduler())
+    # asyncio.create_task(reminder())
 
 
 async def on_shutdown(dispatcher):
@@ -111,31 +112,38 @@ async def button(callback_query: types.CallbackQuery):
 """ Уведомление """
 @dp.message_handler()
 async def reminder():
+    d1 = datetime.datetime.today()
+    d1 = d1 + datetime.timedelta(days=1)
     allUsers = await database.getAllUser()
-    async for user in allUsers:
-        await bot.send_message(chat_id=user.id,
-                               text="Выбери смайл!",
-                               reply_markup=show_inline_button(smileys))
+
+    while True:
+        if d1.strftime('%H%M%S') == "233200":
+            async for user in allUsers:
+                await bot.send_message(chat_id=user.id,
+                                       text="Выбери смайл!",
+                                       reply_markup=show_inline_button(smileys))
+
+
 
 # @dp.message_handler()
-async def scheduler(stop_event):
-    # allUsers = await database.getAllUser()
-    # async for user in allUsers:
-    #     aioschedule.every().day.at(await database.getInfo(user.id, "notification")).do(reminder)
-    #     while True:
-    #         await aioschedule.run_pending()
-    #         await asyncio.sleep(1)
-
-    task = asyncio.create_task(reminder())
-    aioschedule.every().day.at("21:00").do(lambda: asyncio.ensure_future(task))
-
-    # while True:
-    #     await aioschedule.run_pending()
-    #     await asyncio.sleep(1)
-
-    while not stop_event.is_set():  # Проверяем состояние stop_event
-        await aioschedule.run_pending()
-        await asyncio.sleep(1)
+# async def scheduler(stop_event):
+#     # allUsers = await database.getAllUser()
+#     # async for user in allUsers:
+#     #     aioschedule.every().day.at(await database.getInfo(user.id, "notification")).do(reminder)
+#     #     while True:
+#     #         await aioschedule.run_pending()
+#     #         await asyncio.sleep(1)
+#
+#     task = asyncio.create_task(reminder())
+#     aioschedule.every().day.at("21:00").do(lambda: asyncio.ensure_future(task))
+#
+#     # while True:
+#     #     await aioschedule.run_pending()
+#     #     await asyncio.sleep(1)
+#
+#     while not stop_event.is_set():  # Проверяем состояние stop_event
+#         await aioschedule.run_pending()
+#         await asyncio.sleep(1)
 
 
 if __name__ == '__main__':
