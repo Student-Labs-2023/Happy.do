@@ -33,13 +33,15 @@ async def on_shutdown(dispatcher):
 
 smileys = [
     "😊", "😀", "🤪", "😍", "😅",
-     "😆", "😉", "😌", "😎", "😏",
-     "🤔", "😒", "😔", "😕", "😖",
-     "🤢", "😟", "😠", "😡", "😢",
-     "😣", "😥", "😪", "😫", "😴"]
+    "😆", "😉", "😌", "😎", "😏",
+    "🤔", "😒", "😔", "😕", "😖",
+    "🤢", "😟", "😠", "😡", "😢",
+    "😣", "😥", "😪", "😫", "😴"]
 
 """списки для кнопок"""
 buttons_menu = ["Статистика", "Выбрать смайлик"]
+admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользовтелей", "Статистика за день",
+              "Статистика за неделю", "Статистика за месяц", "Выйти"]
 
 
 @dp.message_handler(commands=['start'])
@@ -96,10 +98,56 @@ async def button(callback_query: types.CallbackQuery):
     await query.answer()
     new_emoji_list = add_checkmark(smileys, query.data)
     await bot.answer_callback_query(callback_query.id)
-
     await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_inline_button(new_emoji_list))
     date_day = str(date.today())
-    await database.addOrChangeSmile(callback_query.from_user.id, date_day, '' if '✅' in query.data else query.data)
+    await database.addOrChangeSmile(callback_query.from_user.id, date_day, query.data)
+
+
+@dp.message_handler(commands=['admin'])
+async def admin(message: types.Message):
+    if message.from_user.id == config.ADMIN_ID:
+        await message.answer('Выполнен вход в админ-панель', reply_markup=show_button(admin_menu))
+
+
+@dp.message_handler(text=["Кол-во новых пользователей за неделю"])
+async def stat_new_week(message: types.Message):
+    if message.from_user.id == config.ADMIN_ID:
+        await message.answer(f'Кол-во новых пользователей за неделю: {await database.getCountNewUsers()}',
+                             reply_markup=show_button(admin_menu))
+
+
+@dp.message_handler(text=["Общее кол-во пользовтелей"])
+async def stat_all(message: types.Message):
+    if message.from_user.id == config.ADMIN_ID:
+        await message.answer(f'Общее кол-во пользовтелей: {await database.getCountAllUsers()}',
+                             reply_markup=show_button(admin_menu))
+
+
+@dp.message_handler(text=["Статистика за день"])
+async def stat_day(message: types.Message):
+    if message.from_user.id == config.ADMIN_ID:
+        info = await database.getStatAdmin(1)
+        await message.answer(f'Статистика за день: {info}', reply_markup=show_button(admin_menu))
+
+
+@dp.message_handler(text=["Статистика за неделю"])
+async def stat_week(message: types.Message):
+    if message.from_user.id == config.ADMIN_ID:
+        info = await database.getStatAdmin(7)
+        await message.answer(f'Статистика за неделю: \n{" ".join(info)}', reply_markup=show_button(admin_menu))
+
+
+@dp.message_handler(text=["Статистика за месяц"])
+async def stat_month(message: types.Message):
+    if message.from_user.id == config.ADMIN_ID:
+        info = await database.getStatAdmin(30)
+        await message.answer(f'Статистика за месяц: {info}', reply_markup=show_button(admin_menu))
+
+
+@dp.message_handler(text=["Выйти"])
+async def admin_exit(message: types.Message):
+    if message.from_user.id == config.ADMIN_ID:
+        await message.reply('Выход из админ-панели', reply_markup=show_button(buttons_menu))
 
 
 if __name__ == '__main__':
