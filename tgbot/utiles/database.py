@@ -1,7 +1,7 @@
 import json
 
 from google.cloud.firestore import AsyncClient
-from google.cloud.firestore_v1.types import firestore
+from google.cloud import firestore
 from google.oauth2 import service_account
 from config import config
 
@@ -29,6 +29,7 @@ async def checkUser(ID: str) -> bool:
 async def getUsername(ID):
     info = await firestore_client.collection("Users").document(str(ID)).get()
     return info.to_dict()['name']
+
 
 
 async def addOrChangeSmile(ID, day, smile):
