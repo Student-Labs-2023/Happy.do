@@ -20,7 +20,6 @@ async def createUser(ID, name):
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
-
 async def checkUser(ID: str) -> bool:
     info = await firestore_client.collection("Users").document(ID).get()
     return info.to_dict() is not None
@@ -39,7 +38,6 @@ async def addOrChangeSmile(ID, day, smile):
     else:
         await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").update(
             {day: smile})
-
 
 
 async def delUser(ID):
