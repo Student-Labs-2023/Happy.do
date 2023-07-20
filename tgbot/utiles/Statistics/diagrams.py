@@ -11,8 +11,6 @@ fig, ax = plt.subplots()  # устанавливает размеры гисто
 
 """ Круговая диаграмма """
 def createCircularChart(ID, labels, sizes):
-    # plt.suptitle("Наиболее часто используемые смайлики", fontname="Franklin Gothic Medium",
-    #              fontsize=20)
 
     ax.set_title('Наиболее часто используемые смайлики', fontsize=15,
                  fontname="Franklin Gothic Medium")  # заголовок гистограммы
@@ -45,8 +43,6 @@ def createBarChart(ID, labels, days):
     """ Статистика по наиболее часто используемым смайликам """
     ax.bar(labels, days)  # создание гистограммы
 
-    # ax.set_title('Наиболее часто используемые смайлики', fontsize=15,
-    #              fontname="Franklin Gothic Medium")  # заголовок гистограммы
 
     ax.set_xlabel('Smiles', fontsize=15)
     ax.set_ylabel('Days', fontsize=15)
@@ -57,5 +53,3 @@ def createBarChart(ID, labels, days):
 
     return rf"{os.getcwd()}\tgbot\utiles\Statistics\Picture\Bar{str(ID)}.jpg"
 
-# createCircularChart(1)
-# plt.show()

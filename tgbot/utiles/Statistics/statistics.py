@@ -1,4 +1,3 @@
-import asyncio
 from collections import Counter
 from tgbot.utiles import database
 from tgbot.utiles.Statistics import diagrams
@@ -60,4 +59,3 @@ async def analiticData(ID):
     """ Вызов создания круговой диаграммы """
     return diagrams.createCircularChart(ID, maxKeys, sizes)
 
-# analiticData(1093031870)
