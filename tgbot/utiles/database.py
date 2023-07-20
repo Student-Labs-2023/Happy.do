@@ -25,9 +25,17 @@ async def checkUser(ID: str) -> bool:
     return info.to_dict() is not None
 
 
-async def getUsername(ID):
-    info = await firestore_client.collection("Users").document(str(ID)).get()
-    return info.to_dict()['name']
+async def getInfo(ID, info):
+    fields = await firestore_client.collection("Users").document(str(ID)).get()
+    if info == "username":
+        return fields.to_dict()['name']
+    elif info == "notification":
+        return fields.to_dict()['notification']
+    elif info == "status":
+        return fields.to_dict()['status']
+    elif info == "chat_id":
+        return fields.to_dict()['chat_id']
+
 
 
 
@@ -38,6 +46,9 @@ async def addOrChangeSmile(ID, day, smile):
     else:
         await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").update(
             {day: smile})
+
+async def getAllUser():
+    return firestore_client.collection("Users").stream()
 
 
 async def delUser(ID):
