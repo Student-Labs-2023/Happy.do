@@ -1,7 +1,6 @@
 import logging
 import os
 from datetime import date
-import calendar
 
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils.executor import start_webhook
@@ -40,8 +39,12 @@ smileys = [
 
 """списки для кнопок"""
 buttons_menu = ["Статистика", "Выбрать смайлик"]
+
+buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
+
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользовтелей", "Статистика за день",
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
+
 
 
 @dp.message_handler(commands=['start'])
@@ -53,17 +56,68 @@ async def start(message: types.Message):
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
+@dp.message_handler(text=["Вернуться"])
+async def statisticUserBack(message: types.Message):
+    await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+
+
 @dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = await statistics.analiticData(user_id)  # путь к картинке со статой
+    await message.answer('За какой период ты хочешь получить статистику?', reply_markup=show_button(buttons_stat))
+
+
+@dp.message_handler(text=["День"])
+async def statisticUserDay(message: types.Message):
+    user_id = message.from_user.id  # ID чата
+    pathToPicture = await statistics.analiticData(user_id, "day")  # путь к картинке со статой
+    if pathToPicture != "absent":
+        await message.answer("Ваша статистика за день")
+        photo = InputFile(pathToPicture)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        os.remove(pathToPicture)  # удаляем файл с картинкой
+    else:
+        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+
+
+
+@dp.message_handler(text=["Неделя"])
+async def statisticUserWeek(message: types.Message):
+    user_id = message.from_user.id  # ID чата
+    pathToPicture = await statistics.analiticData(user_id, "week")  # путь к картинке со статой
     if pathToPicture != "absent":
         await message.answer("Ваша статистика за всё время")
         photo = InputFile(pathToPicture)
         await bot.send_photo(chat_id=message.chat.id, photo=photo)
         os.remove(pathToPicture)  # удаляем файл с картинкой
     else:
-        await message.answer("Статистика отсутствует. Вы еще ни разу не вводили смайлики.")
+        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+
+@dp.message_handler(text=["Месяц"])
+async def statisticUserMonth(message: types.Message):
+    user_id = message.from_user.id  # ID чата
+    pathToPicture = await statistics.analiticData(user_id, "month")  # путь к картинке со статой
+    if pathToPicture != "absent":
+        await message.answer("Ваша статистика за месяц")
+        photo = InputFile(pathToPicture)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        os.remove(pathToPicture)  # удаляем файл с картинкой
+    else:
+        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+
+
+@dp.message_handler(text=["Все время"])
+async def statisticUserAll(message: types.Message):
+    user_id = message.from_user.id  # ID чата
+    pathToPicture = await statistics.analiticData(user_id, "all")  # путь к картинке со статой
+    if pathToPicture != "absent":
+        await message.answer("Ваша статистика за все время")
+        photo = InputFile(pathToPicture)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        os.remove(pathToPicture)  # удаляем файл с картинкой
+    else:
+        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+
 
 
 def show_button(list_menu):
