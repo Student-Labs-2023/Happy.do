@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     PATH_FIREBASE_KEY: str
 
+    ADMIN_ID: int
     class Config:
         env_file = '.env'
         env_file_encoding = 'utf-8'
