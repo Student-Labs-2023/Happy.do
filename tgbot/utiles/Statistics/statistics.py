@@ -20,7 +20,10 @@ async def getData(ID, period):
         else:
             smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-7:]]
     elif period == "day":
-        smilesList = smilesDict[str(date.today())]
+        try:
+            smilesList = smilesDict[str(date.today())]
+        except KeyError:
+            raise ValueError
     else:
         smilesList = [smilesDict[i] for i in smilesDict]
 
