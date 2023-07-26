@@ -1,9 +1,13 @@
 import logging
 import os
 from datetime import date
+
 import calendar
 from aiogram.types.message import ContentType
-from aiogram.dispatcher import Dispatcher
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher import Dispatcher, FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+
 from aiogram.utils.executor import start_webhook
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from aiogram import Bot, types
@@ -13,7 +17,8 @@ from tgbot.utiles import database
 from config import config
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
-dp = Dispatcher(bot)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 
 WEBHOOK_HOST = config.WEBHOOK_HOST
 WEBHOOK_PATH = f'/webhook/{config.BOT_TOKEN.get_secret_value()}'
@@ -31,6 +36,10 @@ async def on_shutdown(dispatcher):
     await bot.delete_webhook()
 
 
+class UserState(StatesGroup):
+    limit_is_over = State()
+
+
 smileys = [
     "😊", "😀", "🤪", "😍", "😅",
     "😆", "😉", "😌", "😎", "😏",
@@ -40,30 +49,87 @@ smileys = [
 
 """списки для кнопок"""
 buttons_menu = ["Статистика", "Выбрать смайлик", "Премиум"]
-admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользовтелей", "Статистика за день",
+
+buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
+admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
 premium_list = ["1 месяц", "6 месяцев", "1 год"]
+
+@dp.message_handler(state=UserState.limit_is_over)
+async def buy_premium(message: types.Message):
+    await message.answer('Чтобы продолжить купи подписку')
+
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
     await message.answer(f'Привет, {message.from_user.first_name}!')
-    user_exists = await database.checkUser(str(message.from_user.id))
+    user_exists = await database.checkUser(message.from_user.id)
     if not user_exists:
         await database.createUser(message.from_user.id, message.from_user.username)
+    await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+
+
+@dp.message_handler(text=["Вернуться"])
+async def statisticUserBack(message: types.Message):
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
 @dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = await statistics.analiticData(user_id)  # путь к картинке со статой
+    await message.answer('За какой период ты хочешь получить статистику?', reply_markup=show_button(buttons_stat))
+
+
+@dp.message_handler(text=["День"])
+async def statisticUserDay(message: types.Message):
+    user_id = message.from_user.id  # ID чата
+    pathToPicture = await statistics.analiticData(user_id, "day")  # путь к картинке со статой
     if pathToPicture != "absent":
-        await message.answer("Ваша статистика за всё время")
+        await message.answer("Ваша статистика за день")
         photo = InputFile(pathToPicture)
         await bot.send_photo(chat_id=message.chat.id, photo=photo)
         os.remove(pathToPicture)  # удаляем файл с картинкой
     else:
-        await message.answer("Статистика отсутствует. Вы еще ни разу не вводили смайлики.")
+        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+
+
+@dp.message_handler(text=["Неделя"])
+async def statisticUserWeek(message: types.Message):
+    user_id = message.from_user.id  # ID чата
+    pathToPicture = await statistics.analiticData(user_id, "week")  # путь к картинке со статой
+    if pathToPicture != "absent":
+        await message.answer("Ваша статистика за неделю")
+        photo = InputFile(pathToPicture)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        os.remove(pathToPicture)  # удаляем файл с картинкой
+    else:
+        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+
+
+@dp.message_handler(text=["Месяц"])
+async def statisticUserMonth(message: types.Message):
+    user_id = message.from_user.id  # ID чата
+    pathToPicture = await statistics.analiticData(user_id, "month")  # путь к картинке со статой
+    if pathToPicture != "absent":
+        await message.answer("Ваша статистика за месяц")
+        photo = InputFile(pathToPicture)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        os.remove(pathToPicture)  # удаляем файл с картинкой
+    else:
+        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+
+
+@dp.message_handler(text=["Все время"])
+async def statisticUserAll(message: types.Message):
+    user_id = message.from_user.id  # ID чата
+    pathToPicture = await statistics.analiticData(user_id, "all")  # путь к картинке со статой
+    if pathToPicture != "absent":
+        await message.answer("Ваша статистика за все время")
+        photo = InputFile(pathToPicture)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        os.remove(pathToPicture)  # удаляем файл с картинкой
+    else:
+        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
 
 
 def show_button(list_menu):
@@ -75,8 +141,7 @@ def show_button(list_menu):
 
 
 def show_inline_button(list_emoji):
-    """Принимает список и превращает его в инлайн кнопки кнопки"""
-    "создает инлайн кнопки для показа смайликов"
+    """Принимает список и превращает его в инлайн кнопки"""
     keyboard = InlineKeyboardMarkup(row_width=5)
     buttons = [InlineKeyboardButton(smiley, callback_data=smiley) for smiley in list_emoji]
     keyboard.add(*buttons)
@@ -93,14 +158,20 @@ async def show_emoji(message: types.Message):
 
 
 @dp.callback_query_handler()
-async def button(callback_query: types.CallbackQuery):
+async def button(callback_query: types.CallbackQuery, state: FSMContext):
     query = callback_query
     await query.answer()
     new_emoji_list = add_checkmark(smileys, query.data)
     await bot.answer_callback_query(callback_query.id)
     await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_inline_button(new_emoji_list))
+    await database.addEmojiUsed(callback_query.from_user.id)
     date_day = str(date.today())
     await database.addOrChangeSmile(callback_query.from_user.id, date_day, query.data)
+
+    limit_end = await database.emojiLimitExpired(callback_query.from_user.id)
+    if limit_end:
+        await state.set_state(UserState.limit_is_over.state)
+        await callback_query.message.answer('Чтобы продолжить купи подписку')
 
 
 @dp.message_handler(commands=['admin'])
@@ -127,7 +198,7 @@ async def stat_all(message: types.Message):
 async def stat_day(message: types.Message):
     if message.from_user.id == config.ADMIN_ID:
         info = await database.getStatAdmin(1)
-        await message.answer(f'Статистика за день: {info}', reply_markup=show_button(admin_menu))
+        await message.answer(f'Статистика за день: \n{info}', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Статистика за неделю"])
