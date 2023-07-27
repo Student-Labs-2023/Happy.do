@@ -55,7 +55,7 @@ buttons_stat = ["День", "Неделя", "Месяц", "Все время", "
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
 
-premium_list = ["1 месяц", "6 месяцев", "1 год"]
+premium_list = ["1 месяц", "6 месяцев", "1 год", "Вернуться"]
 
 @dp.message_handler(state=UserState.limit_is_over)
 async def buy_premium(message: types.Message):
@@ -142,12 +142,23 @@ def show_button(list_menu):
     return keyboard
 
 
-def show_inline_button(list_emoji):
-    """Принимает список и превращает его в инлайн кнопки"""
-    keyboard = InlineKeyboardMarkup(row_width=5)
-    buttons = [InlineKeyboardButton(smiley, callback_data=smiley) for smiley in list_emoji]
-    keyboard.add(*buttons)
-    return keyboard
+# def show_inline_button(list_emoji):
+#     """Принимает список и превращает его в инлайн кнопки"""
+#     keyboard = InlineKeyboardMarkup(row_width=5)
+#     buttons = [InlineKeyboardButton(smiley, callback_data=smiley) for smiley in list_emoji]
+#     keyboard.add(*buttons)
+#     return keyboard
+
+
+def show_inline_button(emoji_list, selected_emojis=[]):
+    buttons = []
+    for emoji in emoji_list:
+        if emoji in selected_emojis:
+            button_text = emoji + "✅"
+        else:
+            button_text = emoji
+        buttons.append(InlineKeyboardButton(button_text, callback_data=emoji))
+    return InlineKeyboardMarkup(row_width=5).add(*buttons)
 
 
 def add_checkmark(lst, variable):
@@ -159,21 +170,66 @@ async def show_emoji(message: types.Message):
     await message.reply('Выберите смайлик:', reply_markup=show_inline_button(smileys))
 
 
+# @dp.callback_query_handler()
+# async def button(callback_query: types.CallbackQuery, state: FSMContext):
+#     query = callback_query
+#     await query.answer()
+#     new_emoji_list = add_checkmark(smileys, query.data)
+#     await bot.answer_callback_query(callback_query.id)
+#     await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_inline_button(new_emoji_list))
+#     await database.addEmojiUsed(callback_query.from_user.id)
+#     date_day = str(date.today())
+#     await database.addOrChangeSmile(callback_query.from_user.id, date_day, query.data)
+#
+#     limit_end = await database.emojiLimitExpired(callback_query.from_user.id)
+#     if limit_end:
+#         await state.set_state(UserState.limit_is_over.state)
+#         await callback_query.message.answer('Чтобы продолжить купи подписку')
+
+
 @dp.callback_query_handler()
 async def button(callback_query: types.CallbackQuery, state: FSMContext):
-    query = callback_query
-    await query.answer()
-    new_emoji_list = add_checkmark(smileys, query.data)
-    await bot.answer_callback_query(callback_query.id)
-    await query.message.edit_text('Выбранный смайлик ✅', reply_markup=show_inline_button(new_emoji_list))
-    await database.addEmojiUsed(callback_query.from_user.id)
-    date_day = str(date.today())
-    await database.addOrChangeSmile(callback_query.from_user.id, date_day, query.data)
+    user_id = callback_query.from_user.id
 
-    limit_end = await database.emojiLimitExpired(callback_query.from_user.id)
-    if limit_end:
-        await state.set_state(UserState.limit_is_over.state)
-        await callback_query.message.answer('Чтобы продолжить купи подписку')
+    async with state.proxy() as data:
+        # Проверяем, есть ли уже выбранные смайлики для данного пользователя.
+        # Если нет, инициализируем список выбранных смайликов.
+        if "selected_emojis" not in data:
+            data["selected_emojis"] = []
+
+        # Получаем текущий список выбранных смайликов
+        selected_emojis = data["selected_emojis"]
+
+        # Получаем выбранный смайлик из callback_query.data
+        selected_emoji = callback_query.data
+
+        # Проверяем, есть ли выбранный смайлик уже в списке выбранных.
+        if selected_emoji not in selected_emojis:
+            # Если смайлика еще нет в списке выбранных, добавляем его
+            selected_emojis.append(selected_emoji)
+            await callback_query.answer("Вы выбрали смайлик ✅")
+        else:
+            # Если смайлик уже есть в списке выбранных, удаляем его, чтобы пользователь мог снова выбрать.
+            selected_emojis.remove(selected_emoji)
+            await callback_query.answer("Смайлик снят ❌")
+
+        data["selected_emojis"] = selected_emojis
+
+        print(selected_emojis)
+        await database.addOrChangeSmile(callback_query.from_user.id, str(date.today()), selected_emojis)
+
+        await callback_query.message.edit_text(
+            "Выбранные смайлики:\n" + "".join(selected_emojis) if selected_emojis else "Выбранных смайликов пока нет.",
+            reply_markup=show_inline_button(smileys, selected_emojis)
+        )
+
+
+        limit_end = await database.emojiLimitExpired(callback_query.from_user.id)
+        if limit_end:
+            await state.set_state(UserState.limit_is_over.state)
+            await callback_query.message.answer('Чтобы продолжить купи подписку')
+
+
 
 
 @dp.message_handler(commands=['admin'])
@@ -276,7 +332,7 @@ async def successful_payment(message: types.Message):
     for k, v in payment_info.items():
         print(f"{k}={v}")
 
-    await bot.send_message(message.chat.id, f"Платеж на сумму {message.successful_payment.total_amount } {message.successful_payment.currency} Прошел успешно")
+    await bot.send_message(message.chat.id, f"Платеж на сумму {message.successful_payment.total_amount} {message.successful_payment.currency} Прошел успешно")
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
