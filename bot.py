@@ -51,8 +51,10 @@ smileys = [
 buttons_menu = ["Статистика", "Выбрать смайлик", "Премиум"]
 
 buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
+
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
+
 premium_list = ["1 месяц", "6 месяцев", "1 год"]
 
 @dp.message_handler(state=UserState.limit_is_over)
@@ -275,6 +277,8 @@ async def successful_payment(message: types.Message):
         print(f"{k}={v}")
 
     await bot.send_message(message.chat.id, f"Платеж на сумму {message.successful_payment.total_amount } {message.successful_payment.currency} Прошел успешно")
+    await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
