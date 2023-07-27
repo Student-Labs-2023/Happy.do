@@ -2,7 +2,6 @@ import logging
 import os
 from datetime import date
 
-import calendar
 from aiogram.types.message import ContentType
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import Dispatcher, FSMContext
@@ -14,7 +13,9 @@ from aiogram import Bot, types
 
 from tgbot.utiles.Statistics import statistics
 from tgbot.utiles import database
+
 from config import config
+from content import CONTENT
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
 storage = MemoryStorage()
@@ -53,11 +54,50 @@ buttons_menu = ["Статистика", "Выбрать смайлик", "Пре
 buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
-premium_list = ["1 месяц", "6 месяцев", "1 год"]
+premium_list_default = ["1 месяц", "6 месяцев", "1 год", "Вернуться"]
+premium_list_state = ["1 месяц", "6 месяцев", "1 год"]
+
+
+async def send_invoice(chat_id, time, price):
+    PRICE = types.LabeledPrice(label=f"Подписка на {time}", amount=price * 100)
+
+    await bot.send_invoice(
+        chat_id=chat_id,
+        title='Premium Happy.do',
+        description=f'Активация подписки на {time}',
+        provider_token=config.PAYMENTS_TOKEN.get_secret_value(),
+        currency="rub",
+        photo_url="https://info.sibnet.ru/ni/629/629577w_1669101196.jpg",
+        photo_width=416,
+        photo_height=234,
+        photo_size=416,
+        is_flexible=False,
+        prices=[PRICE],
+        start_parameter="",
+        payload="test-invoice-payload"
+    )
+
+
+@dp.message_handler(text=["Премиум"])
+async def premium(message: types.Message):
+    await message.reply('Выбери на какой срок подключить премиум', reply_markup=show_button(premium_list_default))
+
+
+@dp.message_handler(text=['1 месяц', '6 месяцев', '1 год'])
+@dp.message_handler(state=UserState.limit_is_over)
+async def buy(message: types.Message, time='1 год', price=500):
+    if message.text == '1 месяц':
+        await send_invoice(message.chat.id, '1 месяц', price=100)
+    elif message.text == '6 месяцев':
+        await send_invoice(message.chat.id, '6 месяцев', price=200)
+    elif message.text == '1 год':
+        await send_invoice(message.chat.id, '1 год', price=500)
+
 
 @dp.message_handler(state=UserState.limit_is_over)
 async def buy_premium(message: types.Message):
-    await message.answer('Чтобы продолжить купи подписку')
+    await message.answer('Вы использовали свой лимит в 100 смайликов, чтобы продолжить вам необходимо '
+                         'приобрести premium подписку, выберете подписки', reply_markup=show_button(premium_list_state))
 
 
 @dp.message_handler(commands=['start'])
@@ -66,7 +106,7 @@ async def start(message: types.Message):
     user_exists = await database.checkUser(message.from_user.id)
     if not user_exists:
         await database.createUser(message.from_user.id, message.from_user.username)
-    await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+    await message.answer(CONTENT.messages.start, reply_markup=show_button(buttons_menu))
 
 
 @dp.message_handler(text=["Вернуться"])
@@ -170,8 +210,14 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
 
     limit_end = await database.emojiLimitExpired(callback_query.from_user.id)
     if limit_end:
-        await state.set_state(UserState.limit_is_over.state)
-        await callback_query.message.answer('Чтобы продолжить купи подписку')
+        await set_state(callback_query.message, state)
+
+
+async def set_state(message: types.Message, state: FSMContext):
+    await state.set_state(UserState.limit_is_over.state)
+    await message.answer(
+        'Вы использовали свой лимит в 100 смайликов, чтобы продолжить вам необходимо'
+        'приобрести premium подписку, выберете подписки', reply_markup=show_button(premium_list_state))
 
 
 @dp.message_handler(commands=['admin'])
@@ -221,60 +267,24 @@ async def admin_exit(message: types.Message):
         await message.reply('Выход из админ-панели', reply_markup=show_button(buttons_menu))
 
 
-@dp.message_handler(text=["Премиум"])
-async def premium(message: types.Message):
-    await message.reply('Выбери на какой срок подкоючить премиум', reply_markup=show_button(premium_list))
-
-
-
-async def send_invoice(chat_id, time, price):
-    PRICE = types.LabeledPrice(label=f"Подписка на {time}", amount=price * 100)
-
-    await bot.send_invoice(
-        chat_id=chat_id,
-        title='Premium Happy.do',
-        description=f'Активация подписки на {time}',
-        provider_token=config.PAYMENTS_TOKEN.get_secret_value(),
-        currency="rub",
-        photo_url="https://info.sibnet.ru/ni/629/629577w_1669101196.jpg",
-        photo_width=416,
-        photo_height=234,
-        photo_size=416,
-        is_flexible=False,
-        prices=[PRICE],
-        start_parameter="",
-        payload="test-invoice-payload"
-    )
-
-
-@dp.message_handler(text=['1 месяц'])
-async def buy(message: types.Message, time='1 месяц', price=100):
-    await send_invoice(message.chat.id, time, price)
-
-
-@dp.message_handler(text=['6 месяцев'])
-async def buy(message: types.Message, time='6 месяцев', price=200):
-    await send_invoice(message.chat.id, time, price)
-
-
-@dp.message_handler(text=['1 год'])
-async def buy(message: types.Message, time='1 год', price=500):
-    await send_invoice(message.chat.id, time, price)
-
-
 @dp.pre_checkout_query_handler(lambda query: True)
 async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
     await bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
 
 
 @dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT)
-async def successful_payment(message: types.Message):
+async def successful_payment(message: types.Message, state: FSMContext):
     print("SUCCESSFUL PAYMENT")
+    await state.finish()
     payment_info = message.successful_payment.to_python()
     for k, v in payment_info.items():
         print(f"{k}={v}")
 
-    await bot.send_message(message.chat.id, f"Платеж на сумму {message.successful_payment.total_amount } {message.successful_payment.currency} Прошел успешно")
+    await bot.send_message(message.chat.id,
+                           f"Платеж на сумму {message.successful_payment.total_amount // 100}."
+                           f"{message.successful_payment.currency} прошел успешно",
+                           reply_markup=show_button(buttons_menu))
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

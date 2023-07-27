@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     WEBAPP_PORT: int
 
     PATH_FIREBASE_KEY: str
+    PATH_CONTENT_FILE: str
 
     ADMIN_ID: int
     class Config:
