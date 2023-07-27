@@ -74,7 +74,7 @@ async def getUsername(ID: int) -> str:
     return info.to_dict()['name']
 
 
-async def addOrChangeSmile(ID: int, day: str, smile: str) -> None:
+async def addOrChangeSmile(ID: int, day: str, smilesList: []) -> None:
     """
     Функция addOrChangeSmile используется для добавления или изменения 'smile' в базе данных.
 
@@ -88,23 +88,37 @@ async def addOrChangeSmile(ID: int, day: str, smile: str) -> None:
     :param smile: The content of the pressed button
     """
 
-    if '✅' in smile:
-        await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").update(
-            {day: firestore.DELETE_FIELD})
-        await addOrRemoveValuesSmileInfo(smile[0], False)
-    else:
-        await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").update(
-            {day: smile})
+    smiles = ", ".join(smilesList)
 
-        doc_exist = await firestore_client.collection("Smile info").document(str(date.today())).get()
-        if doc_exist.exists:
-            smile_exist_today = await checkSmileExistToday(smile)
-            if smile_exist_today:
-                await addOrRemoveValuesSmileInfo(smile, True)
-            else:
-                await firestore_client.collection("Smile info").document(str(date.today())).update({smile: '1'})
-        else:
-            await firestore_client.collection("Smile info").document(str(date.today())).set({smile: '1'})
+    if len(smilesList):
+        await firestore_client.collection("Users").document(str(ID)).collection("smile").document(
+            "date").update({day: smiles})
+    else:
+        await firestore_client.collection("Users").document(str(ID)).collection("smile").document(
+            "date").update({day: firestore.DELETE_FIELD})
+
+
+    # Переделать админку под новую возможность отправлять несколько смайликов за раз
+        # await addOrRemoveValuesSmileInfo(smile[0], False)
+
+
+    # if '✅' in smile:
+    #     await firestore_client.collection("Users").document(str(ID)).collection("smile").document(str(date.today())).update(
+    #         {"smile": firestore.DELETE_FIELD})
+    #     await addOrRemoveValuesSmileInfo(smile[0], False)
+    # else:
+    #     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").update(
+    #         {day: smile})
+
+        # doc_exist = await firestore_client.collection("Smile info").document(str(date.today())).get()
+        # if doc_exist.exists:
+        #     smile_exist_today = await checkSmileExistToday(smiles)
+        #     if smile_exist_today:
+        #         await addOrRemoveValuesSmileInfo(smiles, True)
+        #     else:
+        #         await firestore_client.collection("Smile info").document(str(date.today())).update({smiles: '1'})
+        # else:
+        #     await firestore_client.collection("Smile info").document(str(date.today())).set({smiles: '1'})
 
 
 async def checkSmileExistToday(smile) -> bool:
@@ -118,7 +132,7 @@ async def checkSmileExistToday(smile) -> bool:
     return smile in info.to_dict()
 
 
-async def addOrRemoveValuesSmileInfo(smile: str, add: bool) -> None:
+async def addOrRemoveValuesSmileInfo(smilesList: [], add: bool) -> None:
     """
     Функция addOrRemoveValuesSmileInfo используется для добавления или удаления смайла из коллекции "Smile info",
     документа сегодняшнего дня.
@@ -127,18 +141,20 @@ async def addOrRemoveValuesSmileInfo(smile: str, add: bool) -> None:
     :param add: Параметр типа bool, если True, то будет добавлен смайл, иначе будет удален
     """
 
-    info = await firestore_client.collection("Smile info").document(str(date.today())).get()
-    if add:
-        await firestore_client.collection("Smile info").document(str(date.today())).update(
-            {smile: str(int(info.to_dict()[smile]) + 1)})
-    else:
-        # TODO Сделать нормальное удаление прошлого значения, не всего поля, а одного значения
-        if int(info.to_dict()[smile]) == 1:
+    # Переделать под новый ввод большего числа смайликов
+    for smile in smilesList: # возможно нужно добавить async
+        info = await firestore_client.collection("Smile info").document(str(date.today())).get()
+        if add:
             await firestore_client.collection("Smile info").document(str(date.today())).update(
-                {smile: firestore.DELETE_FIELD})
+                {smile: str(int(info.to_dict()[smile]) + 1)})
         else:
-            await firestore_client.collection("Smile info").document(str(date.today())).update(
-                {smile: str(int(info.to_dict()[smile]) - 1)})
+            # Сделать нормальное удаление прошлого значения, не всего поля, а одного значения
+            if int(info.to_dict()[smile]) == 1:
+                await firestore_client.collection("Smile info").document(str(date.today())).update(
+                    {smile: firestore.DELETE_FIELD})
+            else:
+                await firestore_client.collection("Smile info").document(str(date.today())).update(
+                    {smile: str(int(info.to_dict()[smile]) - 1)})
 
 
 async def delUser(ID: int) -> None:
