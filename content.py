@@ -3,6 +3,7 @@ from typing import List
 from pydantic import BaseModel
 import yaml
 
+from config import config
 
 class Keyboard(BaseModel):
     menu: List[str]
@@ -97,4 +98,4 @@ class BotContent(BaseModel):
         return cls.model_validate(content)
 
 
-bot_content = BotContent.parse_yaml('happy.do-bot.content.yaml')
+CONTENT = BotContent.parse_yaml(config.PATH_CONTENT_FILE)
