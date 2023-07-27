@@ -8,6 +8,7 @@ from tgbot.utiles.Statistics import diagrams
 """ Подсчитывание кол-ва одинаковых смайликов """
 async def getData(ID, period):
     smilesDict = await database.getSmileInfo(ID, "all")
+    print(smilesDict)
 
     if period == "month":
         if len(smilesDict) < 31:

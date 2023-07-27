@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import date
 
+import calendar
 from aiogram.types.message import ContentType
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import Dispatcher, FSMContext
@@ -13,9 +14,7 @@ from aiogram import Bot, types
 
 from tgbot.utiles.Statistics import statistics
 from tgbot.utiles import database
-
 from config import config
-from content import CONTENT
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
 storage = MemoryStorage()
@@ -54,6 +53,7 @@ buttons_menu = ["Статистика", "Выбрать смайлик", "Пре
 buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
+
 premium_list_default = ["1 месяц", "6 месяцев", "1 год", "Вернуться"]
 premium_list_state = ["1 месяц", "6 месяцев", "1 год"]
 
@@ -93,11 +93,9 @@ async def buy(message: types.Message, time='1 год', price=500):
     elif message.text == '1 год':
         await send_invoice(message.chat.id, '1 год', price=500)
 
-
 @dp.message_handler(state=UserState.limit_is_over)
 async def buy_premium(message: types.Message):
-    await message.answer('Вы использовали свой лимит в 100 смайликов, чтобы продолжить вам необходимо '
-                         'приобрести premium подписку, выберете подписки', reply_markup=show_button(premium_list_state))
+    await message.answer('Чтобы продолжить купи подписку')
 
 
 @dp.message_handler(commands=['start'])
@@ -106,7 +104,7 @@ async def start(message: types.Message):
     user_exists = await database.checkUser(message.from_user.id)
     if not user_exists:
         await database.createUser(message.from_user.id, message.from_user.username)
-    await message.answer(CONTENT.messages.start, reply_markup=show_button(buttons_menu))
+    await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
 @dp.message_handler(text=["Вернуться"])

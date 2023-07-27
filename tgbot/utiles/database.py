@@ -163,7 +163,8 @@ async def getSmileInfo(ID: int, day: str) -> dict:
 
     info = await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").get()
     if day == "all":
-        return info.to_dict()
+        smiles = dict(sorted(info.to_dict().items()))
+        return smiles
     else:
         return info.to_dict()[day]
 
