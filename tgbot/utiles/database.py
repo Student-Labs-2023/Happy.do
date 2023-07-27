@@ -96,7 +96,9 @@ async def addOrChangeSmile(ID: int, day: str, smilesList: []) -> None:
     else:
         await firestore_client.collection("Users").document(str(ID)).collection("smile").document(
             "date").update({day: firestore.DELETE_FIELD})
-    # TODO Переделать админку под новую возможность отправлять несколько смайликов за раз
+
+
+    # Переделать админку под новую возможность отправлять несколько смайликов за раз
         # await addOrRemoveValuesSmileInfo(smile[0], False)
 
 
@@ -139,14 +141,14 @@ async def addOrRemoveValuesSmileInfo(smilesList: [], add: bool) -> None:
     :param add: Параметр типа bool, если True, то будет добавлен смайл, иначе будет удален
     """
 
-    # TODO Переделать под новый ввод большего числа смайликов
+    # Переделать под новый ввод большего числа смайликов
     for smile in smilesList: # возможно нужно добавить async
         info = await firestore_client.collection("Smile info").document(str(date.today())).get()
         if add:
             await firestore_client.collection("Smile info").document(str(date.today())).update(
                 {smile: str(int(info.to_dict()[smile]) + 1)})
         else:
-            # TODO Сделать нормальное удаление прошлого значения, не всего поля, а одного значения
+            # Сделать нормальное удаление прошлого значения, не всего поля, а одного значения
             if int(info.to_dict()[smile]) == 1:
                 await firestore_client.collection("Smile info").document(str(date.today())).update(
                     {smile: firestore.DELETE_FIELD})
