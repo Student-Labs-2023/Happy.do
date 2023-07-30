@@ -4,7 +4,7 @@ from pydantic import SecretStr
 
 class Settings(BaseSettings):
     BOT_TOKEN: SecretStr
-
+    PAYMENTS_TOKEN: SecretStr
     WEBHOOK_HOST: str = 'host'
     WEBHOOK_PATH: str = f'/webhook/'
 
@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     WEBAPP_PORT: int
 
     PATH_FIREBASE_KEY: str
+    PATH_CONTENT_FILE: str
 
     ADMIN_ID: int
     class Config:
