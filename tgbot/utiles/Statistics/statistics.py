@@ -16,7 +16,7 @@ async def compilingList(list: []):
     return newList
 
 """ Подсчитывание кол-ва одинаковых смайликов """
-async def getData(ID, period):
+async def getData(ID, period, day):
     smilesDict = await database.getSmileInfo(ID, "all")
     # print(smilesDict)
 
@@ -34,8 +34,7 @@ async def getData(ID, period):
             smilesList = await compilingList(smilesList)
     elif period == "day":
         try:
-            smilesList = smilesDict[str(date.today())].split(", ")
-            print(smilesList)
+            smilesList = smilesDict[day].split(", ")
             smilesList = await compilingList(smilesList)
         except KeyError:
             raise ValueError
@@ -49,9 +48,9 @@ async def getData(ID, period):
     return cnt
 
 
-async def analiticData(ID, period):
+async def analiticData(ID, period, day=str(date.today())):
     try:
-        smiles = await getData(ID, period)  # словарь со статистикой по смайлам
+        smiles = await getData(ID, period, day)  # словарь со статистикой по смайлам
     except ValueError:
         return "absent"
 

@@ -166,7 +166,7 @@ async def delUser(ID: int) -> None:
     await firestore_client.collection("Users").document(str(ID)).delete()
 
 
-async def getSmileInfo(ID: int, day: str) -> dict:
+async def getSmileInfo(ID: int, day: str):
     """
     Функция getSmileInfo используется для получения информации по проставленным смайликам.
 
