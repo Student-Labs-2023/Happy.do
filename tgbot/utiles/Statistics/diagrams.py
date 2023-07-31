@@ -4,14 +4,14 @@ import numpy as np
 
 
 """ Круговая диаграмма """
-def createCircularChart(ID, labels, sizes):
+def createCircularChart(ID, labels, sizes, day):
     plt.style.use(
         fr"{os.getcwd()}\tgbot\utiles\Statistics\Config\pitayasmoothie-dark.mplstyle")  # Утанавливает стиль
     matplotlib.rcParams['font.family'] = ["Segoe UI Emoji", "DejaVu Sans"]  # Меняет шрифт в стиле
     matplotlib.rcParams['font.size'] = 13  # Меняет размер шрифта в стиле
     fig, ax = plt.subplots()  # устанавливает размеры гистограммы
 
-    ax.set_title('Наиболее часто используемые смайлики', fontsize=15,
+    ax.set_title(f"Наиболее часто используемые смайлики\n{day}", fontsize=15,
                  fontname="Franklin Gothic Medium")  # заголовок гистограммы
 
     """ Диаграмма """
@@ -36,14 +36,14 @@ def createCircularChart(ID, labels, sizes):
 
 
 """ Гистограмма """
-def createBarChart(ID, labels, days):
+def createBarChart(ID, labels, days, day):
     plt.style.use(
         fr"{os.getcwd()}\tgbot\utiles\Statistics\Config\pitayasmoothie-dark.mplstyle")  # Утанавливает стиль
     matplotlib.rcParams['font.family'] = ["Segoe UI Emoji", "DejaVu Sans"]  # Меняет шрифт в стиле
     matplotlib.rcParams['font.size'] = 13  # Меняет размер шрифта в стиле
     fig, ax = plt.subplots()  # устанавливает размеры гистограммы
 
-    plt.suptitle("Наиболее часто используемые смайлики", fontname="Franklin Gothic Medium",
+    plt.suptitle(f"Наиболее часто используемые смайлики\n{day}", fontname="Franklin Gothic Medium",
                  fontsize=20)
 
     """ Статистика по наиболее часто используемым смайликам """

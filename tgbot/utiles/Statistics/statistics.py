@@ -95,5 +95,5 @@ async def analiticData(ID, period, day=str(date.today())):
     # print(sizes)
 
     """ Вызов создания круговой диаграммы """
-    return diagrams.createCircularChart(ID, maxKeys, sizes)
+    return diagrams.createCircularChart(ID, maxKeys, sizes, day)
 
