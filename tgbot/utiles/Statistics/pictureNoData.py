@@ -5,7 +5,7 @@ def createPictureNoData(ID, date):
 
     # Настройки изображения
     width, height = 700, 700
-    text_color = (255, 255, 255)  # Черный текст
+    text_color = (255, 255, 255)  # Белый текст
     font_size = 40
 
     # Загрузка изображения фона
@@ -15,11 +15,10 @@ def createPictureNoData(ID, date):
     # Создание объекта рисования
     draw = ImageDraw.Draw(background_image)
 
-    # Загрузка шрифта (замените путь на нужный)
+    # Загрузка шрифта
     font_path = os.getcwd() + r"\tgbot\utiles\Statistics\Config\ofont.ru_Franklin Gothic Medium.ttf"
     font = ImageFont.truetype(font_path, font_size)
 
-    # Подготовка текста для вставки
     text = f"{date} - Нет данных"
 
     # Вставка текста на изображение

@@ -119,9 +119,9 @@ async def statisticUser(message: types.Message):
     await message.answer('За какой период ты хочешь получить статистику?', reply_markup=show_button(buttons_stat))
 
 
+
 @dp.message_handler(text=["День"])
 async def statisticUserDay(message: types.Message, state: FSMContext, day=str(date.today())):
-    print(day)
     user_id = message.from_user.id  # ID чата
     userSmiles = await database.getSmileInfo(user_id, day)
     pathToPicture = await statistics.analiticData(user_id, "day", day)  # путь к картинке со статой
@@ -130,9 +130,7 @@ async def statisticUserDay(message: types.Message, state: FSMContext, day=str(da
         photo = InputFile(pathToPicture)
         sent_message = await message.answer_photo(photo=photo,
                                                   reply_markup=show_fake_inline_button(smileys, userSmiles))
-        # await bot.send_photo(chat_id=message.chat.id, photo=photo, reply_markup=show_fake_inline_button(smileys, userSmiles))
         os.remove(pathToPicture)  # удаляем файл с картинкой
-        # await state.update_data(message_id=sent_message.message_id)
         async with state.proxy() as data:
             data['message_id'] = sent_message.message_id
     else:
@@ -180,17 +178,15 @@ async def statisticUserAll(message: types.Message):
 
 def show_button(list_menu):
     """Принимает список и превращает его в кнопки"""
-    """создает кнопки для меню"""
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(*list_menu)
     return keyboard
 
 
-
-
-
-'''Создает инлайн кнопки, которые не влияют на базу данных, 
-   для визуального отображения выбора в статистике за день'''
+''' Создает инлайн кнопки, которые не влияют на базу данных, 
+    для визуального отображения выбора в статистике за день.
+   
+    Также, добавляет кнопки перелистывания даты в виде стрелок. '''
 def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
     buttons = []
     for emoji in emoji_list:
@@ -212,6 +208,7 @@ async def fake_inline_button_functions(callback_query: types.CallbackQuery):
     await callback_query.answer("Здесь смайлы изменять нельзя!")
 
 
+"""Функционал кнопки перелистывания даты влево. """
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith("fake_left_arrow_"))  # проверка на наличие текста "fake_left_arrow_" в колбеке
 async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext):
     # Извлекаем смещение даты из callback_query.data
@@ -222,6 +219,7 @@ async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext
     await update_message_with_offset(callback_query.message, state, new_date_offset, callback_query.from_user.id)
 
 
+"""Функционал кнопки перелистывания даты вправо."""
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith("fake_right_arrow_"))
 async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContext):
     # Извлекаем смещение даты из callback_query.data
@@ -232,17 +230,16 @@ async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContex
     await update_message_with_offset(callback_query.message, state, new_date_offset, callback_query.from_user.id)
 
 
+"""Функция для изменения сообщения статистики."""
 async def update_message_with_offset(message: types.Message, state: FSMContext, date_offset: int, user_id: int):
 
-    # msg_id = await state.get_state("message_id")
-
+    # получаем из стейта message_id
     async with state.proxy() as data:
         msg_id = data['message_id']
 
-
+    # функция для отправки картинки с отсутствием данных
     async def pastPicture():
         pathToPicture = pictureNoData.createPictureNoData(user_id, new_date)
-        # photo = InputFile(pathToPicture)
 
         with open(pathToPicture, 'rb') as file:
             photo = types.InputMediaPhoto(file)
@@ -257,13 +254,13 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
 
     # Получаем текущую дату и применяем смещение
     new_date = str(date.today() + timedelta(days=date_offset))
-    # formatted_date = str(new_date.strftime("%Y-%m-%d"))
 
+    """ Проверяем на наличие данных по указанному дню в базе 
+    и при положительном ответе изменяем сообщение с добавлением новой статистики """
     try:
         userSmiles = await database.getSmileInfo(user_id, new_date)
         pathToPicture = await statistics.analiticData(user_id, "day", new_date)  # путь к картинке со статой
         if pathToPicture != "absent":
-            # photo = InputFile(pathToPicture)
 
             with open(pathToPicture, 'rb') as file:
                 photo = types.InputMediaPhoto(file)
@@ -279,14 +276,6 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
             await pastPicture()
     except KeyError:
         await pastPicture()
-
-
-
-
-
-
-
-
 
 
 # def show_inline_button(list_emoji):
