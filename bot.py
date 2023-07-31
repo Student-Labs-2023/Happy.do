@@ -122,11 +122,13 @@ async def statisticUser(message: types.Message):
 @dp.message_handler(text=["День"])
 async def statisticUserDay(message: types.Message):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = await statistics.analiticData(user_id, "day")  # путь к картинке со статой
+    userSmiles = database.getSmileInfo(user_id, str(date.today()))
+    new_emoji_list = add_checkmark(smileys, userSmiles)
+    pathToPicture = await statistics.analiticData(user_id, "day", str(date.today()))  # путь к картинке со статой
     if pathToPicture != "absent":
         await message.answer("Ваша статистика за день")
         photo = InputFile(pathToPicture)
-        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        await bot.send_photo(chat_id=message.chat.id, photo=photo, reply_markup=show_inline_button(new_emoji_list))
         os.remove(pathToPicture)  # удаляем файл с картинкой
     else:
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
