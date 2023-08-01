@@ -25,7 +25,7 @@ async def createUser(ID: int, name: str) -> None:
     """
     await firestore_client.collection("Users").document(str(ID)).set(
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
-         "smile_used": 0})
+         "smile_used": 0, "date_registration_premium": "undefined", "premium_registration_period": "undefined"})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
@@ -263,3 +263,31 @@ async def getStatAdmin(days_range: int) -> list:
     emoji_dict = await convertDictToStat(stat_dict)
     emoji_dict = [f"{emoji} : {value}" for emoji, value in emoji_dict.items()]
     return emoji_dict
+
+
+async def premiumStatus(ID: int, period: str) -> None:
+    """
+    Функция premiumStatus используется для изменения статуса пользователя после покупки премиума в БД.
+
+    :param ID: Telegram user ID
+    """
+
+    await firestore_client.collection("Users").document(str(ID)).update({"status": "premium",
+                                                                         "date_registration_premium": str(date.today()),
+                                                                         "premium_registration_period": period})
+
+
+async def checkPremiumUser(ID: int) -> bool:
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+    _Info = info.to_dict()["status"]
+    if _Info == "premium":
+        return True
+    else:
+        return False
+
+
+async def infoPremiumUser(ID: int) -> str:
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+    period = info.to_dict()["premium_registration_period"]
+    date = info.to_dict()["date_registration_premium"]
+    return f"У вас уже есть премиум на {period} c {date}"
