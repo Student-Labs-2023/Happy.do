@@ -113,11 +113,13 @@ async def statisticUserBack(message: types.Message):
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
+#-----------------------------------------------------------------------------------------------------------------------
+"""Система отправки уведомлений"""
+#-----------------------------------------------------------------------------------------------------------------------
 @dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
     await message.answer('За какой период ты хочешь получить статистику?', reply_markup=show_button(buttons_stat))
-
 
 
 @dp.message_handler(text=["День"])
@@ -176,16 +178,9 @@ async def statisticUserAll(message: types.Message):
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
 
 
-def show_button(list_menu):
-    """Принимает список и превращает его в кнопки"""
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(*list_menu)
-    return keyboard
-
-
 ''' Создает инлайн кнопки, которые не влияют на базу данных, 
     для визуального отображения выбора в статистике за день.
-   
+
     Также, добавляет кнопки перелистывания даты в виде стрелок. '''
 def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
     buttons = []
@@ -202,14 +197,16 @@ def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
     return InlineKeyboardMarkup(row_width=5).add(*buttons)
 
 
-"""Отправляет пользователю сообщение о том, что здесь выбор менять нельзя"""
+"""Функционал для фейк кнопок со смайликами. 
+   Отправляет пользователю сообщение о том, что здесь выбор менять нельзя"""
 @dp.callback_query_handler(text="fake_buttons")
 async def fake_inline_button_functions(callback_query: types.CallbackQuery):
     await callback_query.answer("Здесь смайлы изменять нельзя!")
 
 
 """Функционал кнопки перелистывания даты влево. """
-@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith("fake_left_arrow_"))  # проверка на наличие текста "fake_left_arrow_" в колбеке
+@dp.callback_query_handler(lambda callback_query: callback_query.data.startswith(
+    "fake_left_arrow_"))  # проверка на наличие текста "fake_left_arrow_" в колбеке
 async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext):
     # Извлекаем смещение даты из callback_query.data
     date_offset = int(callback_query.data.split("_")[-1])
@@ -232,7 +229,6 @@ async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContex
 
 """Функция для изменения сообщения статистики."""
 async def update_message_with_offset(message: types.Message, state: FSMContext, date_offset: int, user_id: int):
-
     # получаем из стейта message_id
     async with state.proxy() as data:
         msg_id = data['message_id']
@@ -276,6 +272,17 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
             await pastPicture()
     except KeyError:
         await pastPicture()
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+"""Остальные"""
+#-----------------------------------------------------------------------------------------------------------------------
+def show_button(list_menu):
+    """Принимает список и превращает его в кнопки"""
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(*list_menu)
+    return keyboard
+
 
 
 # def show_inline_button(list_emoji):
