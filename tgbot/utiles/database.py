@@ -52,6 +52,20 @@ async def addPersonalSmiles(ID: int, smile: str):
         {"personal_smiles": smiles[0] if len(smiles) == 1 else ", ".join(smiles)})
 
 
+async def removePersonalSmile(ID: int, smile: str):
+    """
+    Функция removePersonalSmile используется для удаления персональных смайликов из базы данных.
+
+    :param ID: Telegram user ID
+    :param smile: Смайлик, который удаляется из базы
+    """
+    smiles = await getPersonalSmiles(ID)
+
+    smiles.remove(smile)
+    await firestore_client.collection("Users").document(str(ID)).update(
+       {"personal_smiles": smiles[0] if len(smiles) == 1 else ", ".join(smiles)})
+
+
 async def emojiLimitExpired(ID: int) -> bool:
     """
     Функция emojiLimitExpired используется для проверки, использовал ли пользователь 100 смайликов,
