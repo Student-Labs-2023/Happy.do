@@ -25,7 +25,7 @@ async def createUser(ID: int, name: str) -> None:
     """
     await firestore_client.collection("Users").document(str(ID)).set(
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
-         "smile_used": 0})
+         "smile_used": 0, "personal_smiles": None})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
@@ -36,6 +36,20 @@ async def addEmojiUsed(ID: int) -> None:
     :param ID: Telegram user ID
     """
     await firestore_client.collection("Users").document(str(ID)).update({"smile_used": firestore.Increment(1)})
+
+
+async def addPersonalSmiles(ID: int, smile: str):
+    """
+    Функция addPersonalSmiles используется для добавления персональных смайликов в базу данных.
+
+    :param ID: Telegram user ID
+    :param smile: Смайлик, который передается в базу
+    """
+    smiles = await getPersonalSmiles(ID)
+    smiles.append(smile)
+
+    await firestore_client.collection("Users").document(str(ID)).update(
+        {"personal_smiles": smiles[0] if len(smiles) == 1 else ", ".join(smiles)})
 
 
 async def emojiLimitExpired(ID: int) -> bool:
@@ -197,6 +211,18 @@ async def getCountAllUsers() -> int:
     async for count_users in firestore_client.collection("Users").stream():
         counter += 1
     return counter
+
+
+async def getPersonalSmiles(ID: int):
+    """
+    Функция getPersonalSmiles используется для получения персональных смайликов.
+
+    :param ID: Telegram user ID
+    :return: Список персональных смайликов
+    """
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+    _ = info.to_dict()["personal_smiles"]
+    return list(_) if ", " not in _ else _.split(", ")
 
 
 async def getCountNewUsers() -> int:
