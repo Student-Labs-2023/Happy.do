@@ -64,7 +64,6 @@ premium_list_state = ["1 месяц", "6 месяцев", "1 год"]
 
 async def send_invoice(chat_id, time, price):
     PRICE = types.LabeledPrice(label=f"Подписка на {time}", amount=price * 100)
-
     await bot.send_invoice(
         chat_id=chat_id,
         title='Premium Happy.do',
@@ -84,7 +83,10 @@ async def send_invoice(chat_id, time, price):
 
 @dp.message_handler(text=["Премиум"])
 async def premium(message: types.Message):
-    await message.reply('Выбери на какой срок подключить премиум', reply_markup=show_button(premium_list_default))
+    if await database.checkPremiumUser(message.from_user.id):
+        await message.reply(await database.infoPremiumUser(message.from_user.id), reply_markup=show_button(["Вернуться"]))
+    else:
+        await message.reply('Выбери на какой срок подключить премиум', reply_markup=show_button(premium_list_default))
 
 
 @dp.message_handler(text=['1 месяц', '6 месяцев', '1 год'])
@@ -97,7 +99,7 @@ async def buy(message: types.Message, time='1 год', price=500):
     elif message.text == '1 год':
         await send_invoice(message.chat.id, '1 год', price=500)
 
-        
+
 @dp.message_handler(state=UserState.limit_is_over)
 async def buy_premium(message: types.Message):
     await message.answer('Чтобы продолжить купи подписку')
@@ -120,7 +122,7 @@ async def statisticUserBack(message: types.Message):
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
-#-----------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------
 """Система отправки статистики"""
 #-----------------------------------------------------------------------------------------------------------------------
 
@@ -303,7 +305,7 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
     except KeyError:
         await pastPicture()
 
-
+        
 #-----------------------------------------------------------------------------------------------------------------------
 """Добавление смайлика к таблице выбора"""
 #-----------------------------------------------------------------------------------------------------------------------
@@ -380,7 +382,8 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
             await message.answer(f"{personal_smile} - этот смайлик находится в стандартном меню выбора, "
                                  f"его нельзя удалять. Выберите другой.")
         elif not personal_smile in smile_list:
-            await message.answer(f"{personal_smile} - этого смайлика нет в добавленных вами смайликах. Выберите другой.")
+            await message.answer(
+                f"{personal_smile} - этого смайлика нет в добавленных вами смайликах. Выберите другой.")
         else:
             await message.answer(f"{personal_smile} - ваш смайл.")
             await database.removePersonalSmile(user_id, personal_smile)
@@ -451,9 +454,9 @@ async def generationPortraitWeek(message: types.Message):
         await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
 
 
-#-----------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------
 """Остальные"""
-#-----------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------
 
 
 def show_button(list_menu):
@@ -461,7 +464,6 @@ def show_button(list_menu):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(*list_menu)
     return keyboard
-
 
 
 # def show_inline_button(list_emoji):
@@ -542,7 +544,7 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
         await callback_query.message.edit_text(
             "Выбранные смайлики:\n" + "".join(selected_emojis) if selected_emojis else "Выбранных смайликов пока нет.",
             reply_markup=show_inline_button(emoji_list, selected_emojis)
-        )   
+        )
 
 
 async def set_state(message: types.Message, state: FSMContext):
@@ -550,7 +552,6 @@ async def set_state(message: types.Message, state: FSMContext):
     await message.answer(
         'Вы использовали свой лимит в 100 смайликов, чтобы продолжить вам необходимо'
         'приобрести premium подписку, выберете подписки', reply_markup=show_button(premium_list_state))
-
 
 
 @dp.message_handler(commands=['admin'])
@@ -566,10 +567,10 @@ async def stat_new_week(message: types.Message):
                              reply_markup=show_button(admin_menu))
 
 
-@dp.message_handler(text=["Общее кол-во пользовтелей"])
+@dp.message_handler(text=["Общее кол-во пользователей"])
 async def stat_all(message: types.Message):
     if message.from_user.id == config.ADMIN_ID:
-        await message.answer(f'Общее кол-во пользовтелей: {await database.getCountAllUsers()}',
+        await message.answer(f'Общее кол-во пользователей: {await database.getCountAllUsers()}',
                              reply_markup=show_button(admin_menu))
 
 
@@ -577,7 +578,7 @@ async def stat_all(message: types.Message):
 async def stat_day(message: types.Message):
     if message.from_user.id == config.ADMIN_ID:
         info = await database.getStatAdmin(1)
-        await message.answer(f'Статистика за день: \n{info}', reply_markup=show_button(admin_menu))
+        await message.answer(f'Статистика за день: \n{" ".join(info)}', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Статистика за неделю"])
@@ -591,7 +592,7 @@ async def stat_week(message: types.Message):
 async def stat_month(message: types.Message):
     if message.from_user.id == config.ADMIN_ID:
         info = await database.getStatAdmin(30)
-        await message.answer(f'Статистика за месяц: {info}', reply_markup=show_button(admin_menu))
+        await message.answer(f'Статистика за месяц: \n{" ".join(info)}', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Выйти"])
@@ -605,6 +606,15 @@ async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
     await bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
 
 
+def price_to_period(price):
+    match price:
+        case 100:
+            return "1 месяц"
+        case 200:
+            return "6 месяцев"
+        case 500:
+            return "1 год"
+
 @dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: types.Message, state: FSMContext):
     print("SUCCESSFUL PAYMENT")
@@ -613,11 +623,11 @@ async def successful_payment(message: types.Message, state: FSMContext):
     for k, v in payment_info.items():
         print(f"{k}={v}")
 
-
     await bot.send_message(message.chat.id,
-                           f"Платеж на сумму {message.successful_payment.total_amount // 100}."
+                           f"Платеж на сумму {message.successful_payment.total_amount}."
                            f"{message.successful_payment.currency} прошел успешно",
                            reply_markup=show_button(buttons_menu))
+    await database.premiumStatus(message.from_user.id, price_to_period(message.successful_payment.total_amount/100))
 
 
 if __name__ == '__main__':

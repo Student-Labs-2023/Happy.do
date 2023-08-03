@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     PATH_CONTENT_FILE: str
 
     ADMIN_ID: int
+
     class Config:
         env_file = '.env'
         env_file_encoding = 'utf-8'
