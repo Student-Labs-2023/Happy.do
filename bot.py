@@ -388,13 +388,14 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
         await message.answer("Неправильный ввод! Отправьте смайлик.\n"
                              "Если вы не хотите отправлять смайл, то введите: 'Назад'")
 
+
 #-----------------------------------------------------------------------------------------------------------------------
 """Генерация портрета с помощью chatGPT"""
 #-----------------------------------------------------------------------------------------------------------------------
 
 
 @dp.message_handler(text=["Сгенерировать портрет"])
-async def generationArt(message: types.Message):
+async def generationPortrait(message: types.Message):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
     хотя бы 7 дней или вызывал эту команду более 2 раз, то портрет не генерируется.
@@ -410,6 +411,7 @@ async def generationArt(message: types.Message):
             await message.answer("Слишком мало информации. Для получения портрета необходимо "
                                  "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
         else:
+            await message.answer("Портрет генерируется. Дождитесь завершения.")
             smilesDict = dict(list(smilesDict.items())[-7:])
             await message.answer(await chatGPT.create_psychological_portrait(smilesDict),
                                  reply_markup=show_button(buttons_menu))

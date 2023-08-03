@@ -217,7 +217,7 @@ async def getUsedGPT(ID: int) -> int:
 
     if info.to_dict()["used_GPT_date"] != str(date.today()):
         await firestore_client.collection("Users").document(str(ID)).update({"used_GPT_date": str(date.today()),
-                                                                             "used_GPT": 0})
+                                                                             "used_GPT": 1})
         # await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": 0})
         return 0
     else:
