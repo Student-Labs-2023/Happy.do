@@ -26,7 +26,7 @@ async def createUser(ID: int, name: str) -> None:
     await firestore_client.collection("Users").document(str(ID)).set(
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
          "smile_used": 0, "personal_smiles": "", "used_GPT": 0, "used_GPT_date": None, "date_registration_premium": "undefined",
-         "premium_status_end": "undefined"}})
+         "premium_status_end": "undefined"})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
