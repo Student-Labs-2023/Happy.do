@@ -26,7 +26,7 @@ async def createUser(ID: int, name: str) -> None:
     await firestore_client.collection("Users").document(str(ID)).set(
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
 
-         "smile_used": 0, "date_registration_premium": "undefined", "premium_registration_period": "undefined"})
+         "smile_used": 0, "date_registration_premium": "undefined", "premium_status_end": "undefined"})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
@@ -212,8 +212,6 @@ async def addOrRemoveValuesSmileInfo(smilesList: [], pastSmilesList: []) -> None
                         newDict[smile] -= 1
             await firestore_client.collection("Smile info").document(str(date.today())).set(newDict)
 
-
-
     # if add:
     #     if not pastSmilesList:
 
@@ -359,12 +357,13 @@ async def premiumStatus(ID: int, period: str) -> None:
     """
     Функция premiumStatus используется для изменения статуса пользователя после покупки премиума в БД.
 
+    :param period: Дата окончания подписки
     :param ID: Telegram user ID
     """
 
     await firestore_client.collection("Users").document(str(ID)).update({"status": "premium",
                                                                          "date_registration_premium": str(date.today()),
-                                                                         "premium_registration_period": period})
+                                                                         "premium_status_end": period})
 
 
 async def checkPremiumUser(ID: int) -> bool:
@@ -378,6 +377,6 @@ async def checkPremiumUser(ID: int) -> bool:
 
 async def infoPremiumUser(ID: int) -> str:
     info = await firestore_client.collection("Users").document(str(ID)).get()
-    period = info.to_dict()["premium_registration_period"]
+    period = info.to_dict()["premium_status_end"]
     date = info.to_dict()["date_registration_premium"]
-    return f"У вас уже есть премиум на {period} c {date}"
+    return f"У вас активен премиум статус до {period}"

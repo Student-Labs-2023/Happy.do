@@ -1,6 +1,6 @@
 import logging
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import emoji
 
 import calendar
@@ -84,7 +84,8 @@ async def send_invoice(chat_id, time, price):
 @dp.message_handler(text=["Премиум"])
 async def premium(message: types.Message):
     if await database.checkPremiumUser(message.from_user.id):
-        await message.reply(await database.infoPremiumUser(message.from_user.id), reply_markup=show_button(["Вернуться"]))
+        await message.reply(await database.infoPremiumUser(message.from_user.id),
+                            reply_markup=show_button(["Вернуться"]))
     else:
         await message.reply('Выбери на какой срок подключить премиум', reply_markup=show_button(premium_list_default))
 
@@ -551,15 +552,6 @@ async def pre_checkout_query(pre_checkout_q: types.PreCheckoutQuery):
     await bot.answer_pre_checkout_query(pre_checkout_q.id, ok=True)
 
 
-def price_to_period(price):
-    match price:
-        case 100:
-            return "1 месяц"
-        case 200:
-            return "6 месяцев"
-        case 500:
-            return "1 год"
-
 @dp.message_handler(content_types=ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: types.Message, state: FSMContext):
     print("SUCCESSFUL PAYMENT")
@@ -568,11 +560,22 @@ async def successful_payment(message: types.Message, state: FSMContext):
     for k, v in payment_info.items():
         print(f"{k}={v}")
 
-    await bot.send_message(message.chat.id,
-                           f"Платеж на сумму {message.successful_payment.total_amount}."
-                           f"{message.successful_payment.currency} прошел успешно",
-                           reply_markup=show_button(buttons_menu))
-    await database.premiumStatus(message.from_user.id, price_to_period(message.successful_payment.total_amount/100))
+    await message.answer(
+        "Платеж на сумму {:.2f} {} прошел успешно".format(float(message.successful_payment.total_amount) / 100,
+                                                          message.successful_payment.currency),
+        reply_markup=show_button(buttons_menu))
+    await message.answer(await database.infoPremiumUser(message.from_user.id))
+
+    current_date = datetime.today()
+
+    if message.successful_payment.total_amount / 100 == 100:
+        data_end = current_date + timedelta(days=31)
+    elif message.successful_payment.total_amount / 100 == 200:
+        data_end = current_date + timedelta(days=182)
+    else:
+        data_end = current_date + timedelta(days=365)
+
+    await database.premiumStatus(message.from_user.id, str(data_end.date()))
 
 
 if __name__ == '__main__':
