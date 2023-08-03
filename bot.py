@@ -97,7 +97,7 @@ async def buy(message: types.Message, time='1 год', price=500):
     elif message.text == '1 год':
         await send_invoice(message.chat.id, '1 год', price=500)
 
-        
+
 @dp.message_handler(state=UserState.limit_is_over)
 async def buy_premium(message: types.Message):
     await message.answer('Чтобы продолжить купи подписку')
@@ -117,9 +117,11 @@ async def statisticUserBack(message: types.Message):
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
-#-----------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------
 """Система отправки статистики"""
-#-----------------------------------------------------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------------------------------------------------
 @dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
@@ -194,6 +196,8 @@ async def statisticUserAll(message: types.Message):
     для визуального отображения выбора в статистике за день.
 
     Также, добавляет кнопки перелистывания даты в виде стрелок. '''
+
+
 def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
     buttons = []
     keyboard = InlineKeyboardMarkup(row_width=5)
@@ -216,12 +220,16 @@ def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
 
 """Функционал для фейк кнопок со смайликами. 
    Отправляет пользователю сообщение о том, что здесь выбор менять нельзя"""
+
+
 @dp.callback_query_handler(text="fake_buttons")
 async def fake_inline_button_functions(callback_query: types.CallbackQuery):
     await callback_query.answer("Здесь смайлы изменять нельзя!")
 
 
 """Функционал кнопки перелистывания даты влево. """
+
+
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith(
     "fake_left_arrow_"))  # проверка на наличие текста "fake_left_arrow_" в колбеке
 async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext):
@@ -234,6 +242,8 @@ async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext
 
 
 """Функционал кнопки перелистывания даты вправо."""
+
+
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith("fake_right_arrow_"))
 async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContext):
     # Извлекаем смещение даты из callback_query.data
@@ -245,6 +255,8 @@ async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContex
 
 
 """Функция для изменения сообщения статистики."""
+
+
 async def update_message_with_offset(message: types.Message, state: FSMContext, date_offset: int, user_id: int):
     # получаем из стейта message_id
     async with state.proxy() as data:
@@ -292,9 +304,12 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
     except KeyError:
         await pastPicture()
 
-#-----------------------------------------------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------------------------------------------------
 """Добавление смайлика к таблице выбора"""
-#-----------------------------------------------------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------------------------------------------------
 @dp.message_handler(text=["Добавить смайлик"])
 async def addSmileToMenu(message: types.Message):
     await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
@@ -309,7 +324,6 @@ async def addSmile(message: types.Message):
     else:
         await message.answer("Вы уже добавили максимальное количество смайликов - 10. "
                              "Вы можете освободить место, удалив один из добавленных смайликов.")
-
 
 
 @dp.message_handler(state=UserState.personal_smile_add)
@@ -366,7 +380,8 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
             await message.answer(f"{personal_smile} - этот смайлик находится в стандартном меню выбора, "
                                  f"его нельзя удалять. Выберите другой.")
         elif not personal_smile in smile_list:
-            await message.answer(f"{personal_smile} - этого смайлика нет в добавленных вами смайликах. Выберите другой.")
+            await message.answer(
+                f"{personal_smile} - этого смайлика нет в добавленных вами смайликах. Выберите другой.")
         else:
             await message.answer(f"{personal_smile} - ваш смайл.")
             await database.removePersonalSmile(user_id, personal_smile)
@@ -380,9 +395,11 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
                              "Если вы не хотите отправлять смайл, то введите: 'Назад'")
 
 
-#-----------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------------------------------------------
 """Остальные"""
-#-----------------------------------------------------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------------------------------------------------
 
 
 def show_button(list_menu):
@@ -390,7 +407,6 @@ def show_button(list_menu):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(*list_menu)
     return keyboard
-
 
 
 # def show_inline_button(list_emoji):
@@ -471,7 +487,7 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
         await callback_query.message.edit_text(
             "Выбранные смайлики:\n" + "".join(selected_emojis) if selected_emojis else "Выбранных смайликов пока нет.",
             reply_markup=show_inline_button(emoji_list, selected_emojis)
-        )   
+        )
 
 
 async def set_state(message: types.Message, state: FSMContext):
@@ -479,7 +495,6 @@ async def set_state(message: types.Message, state: FSMContext):
     await message.answer(
         'Вы использовали свой лимит в 100 смайликов, чтобы продолжить вам необходимо'
         'приобрести premium подписку, выберете подписки', reply_markup=show_button(premium_list_state))
-
 
 
 @dp.message_handler(commands=['admin'])
@@ -495,10 +510,10 @@ async def stat_new_week(message: types.Message):
                              reply_markup=show_button(admin_menu))
 
 
-@dp.message_handler(text=["Общее кол-во пользовтелей"])
+@dp.message_handler(text=["Общее кол-во пользователей"])
 async def stat_all(message: types.Message):
     if message.from_user.id == config.ADMIN_ID:
-        await message.answer(f'Общее кол-во пользовтелей: {await database.getCountAllUsers()}',
+        await message.answer(f'Общее кол-во пользователей: {await database.getCountAllUsers()}',
                              reply_markup=show_button(admin_menu))
 
 
@@ -506,7 +521,7 @@ async def stat_all(message: types.Message):
 async def stat_day(message: types.Message):
     if message.from_user.id == config.ADMIN_ID:
         info = await database.getStatAdmin(1)
-        await message.answer(f'Статистика за день: \n{info}', reply_markup=show_button(admin_menu))
+        await message.answer(f'Статистика за день: \n{" ".join(info)}', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Статистика за неделю"])
@@ -520,7 +535,7 @@ async def stat_week(message: types.Message):
 async def stat_month(message: types.Message):
     if message.from_user.id == config.ADMIN_ID:
         info = await database.getStatAdmin(30)
-        await message.answer(f'Статистика за месяц: {info}', reply_markup=show_button(admin_menu))
+        await message.answer(f'Статистика за месяц: \n{" ".join(info)}', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Выйти"])
@@ -541,7 +556,6 @@ async def successful_payment(message: types.Message, state: FSMContext):
     payment_info = message.successful_payment.to_python()
     for k, v in payment_info.items():
         print(f"{k}={v}")
-
 
     await bot.send_message(message.chat.id,
                            f"Платеж на сумму {message.successful_payment.total_amount // 100}."
