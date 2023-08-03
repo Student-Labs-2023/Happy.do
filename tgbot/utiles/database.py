@@ -25,7 +25,7 @@ async def createUser(ID: int, name: str) -> None:
     """
     await firestore_client.collection("Users").document(str(ID)).set(
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
-         "smile_used": 0, "personal_smiles": None})
+         "smile_used": 0, "personal_smiles": None, "used_GPT": 0, "used_GPT_date": None})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
@@ -194,12 +194,44 @@ async def delUser(ID: int) -> None:
     await firestore_client.collection("Users").document(str(ID)).delete()
 
 
+# async def addUsedGPT(ID: int) -> None:
+#     """
+#     Функция addUsedGPT используется для добавления информации о количестве использований chatGPT.
+#
+#     :param ID: Telegram user ID
+#     """
+#     value = await getUsedGPT(ID) + 1
+#     await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value})
+
+
+async def getUsedGPT(ID: int) -> int:
+    """
+    Функция getUsedGPT используется для получения информации о количестве использований chatGPT.
+    При вызове этой функции в базе увеличивается количество использований chatGPT на 1.
+    Каждый новый день количество использований обнуляется.
+
+    :param ID: Telegram user ID
+    :return: Количество использований chatGPT
+    """
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+
+    if info.to_dict()["used_GPT_date"] != str(date.today()):
+        await firestore_client.collection("Users").document(str(ID)).update({"used_GPT_date": str(date.today()),
+                                                                             "used_GPT": 0})
+        # await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": 0})
+        return 0
+    else:
+        value = await info.to_dict()["used_GPT"]
+        await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value + 1})
+        return value
+
+
 async def getSmileInfo(ID: int, day: str):
     """
     Функция getSmileInfo используется для получения информации по проставленным смайликам.
 
     При day == "all" возвращается словарь со всеми данными.
-    При другом значении day возвращается список со смайликами за какойто конкретный день.
+    При другом значении day возвращается список со смайликами за какой-то конкретный день.
 
     :param ID: Telegram user ID
     :param day: Дата, по какому дню требуется информация

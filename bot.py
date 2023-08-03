@@ -303,6 +303,8 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
 #-----------------------------------------------------------------------------------------------------------------------
 """Добавление смайлика к таблице выбора"""
 #-----------------------------------------------------------------------------------------------------------------------
+
+
 @dp.message_handler(text=["Добавить смайлик"])
 async def addSmileToMenu(message: types.Message):
     await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
@@ -317,7 +319,6 @@ async def addSmile(message: types.Message):
     else:
         await message.answer("Вы уже добавили максимальное количество смайликов - 10. "
                              "Вы можете освободить место, удалив один из добавленных смайликов.")
-
 
 
 @dp.message_handler(state=UserState.personal_smile_add)
@@ -396,18 +397,24 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
 async def generationArt(message: types.Message):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
-    хотя бы 7 дней, то портрет не генерируется.
+    хотя бы 7 дней или вызывал эту команду более 2 раз, то портрет не генерируется.
     """
     user_id = message.from_user.id
 
-    smilesDict = await database.getSmileInfo(user_id, "all")
-    if len(smilesDict) < 7:
-        await message.answer("Слишком мало информации. Для получения портрета необходимо "
-                             "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
+    if await database.getUsedGPT(user_id) < 2:
+        # await database.addUsedGPT(user_id)
+
+        smilesDict = await database.getSmileInfo(user_id, "all")
+
+        if len(smilesDict) < 7:
+            await message.answer("Слишком мало информации. Для получения портрета необходимо "
+                                 "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
+        else:
+            smilesDict = dict(list(smilesDict.items())[-7:])
+            await message.answer(await chatGPT.create_psychological_portrait(smilesDict),
+                                 reply_markup=show_button(buttons_menu))
     else:
-        smilesDict = dict(list(smilesDict.items())[-7:])
-        await message.answer(await chatGPT.create_psychological_portrait(smilesDict),
-                             reply_markup=show_button(buttons_menu))
+        await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
 
 
 #-----------------------------------------------------------------------------------------------------------------------
