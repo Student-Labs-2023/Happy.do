@@ -25,7 +25,8 @@ async def createUser(ID: int, name: str) -> None:
     """
     await firestore_client.collection("Users").document(str(ID)).set(
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
-         "smile_used": 0, "personal_smiles": "", "used_GPT": 0, "used_GPT_date": None, "date_registration_premium": "undefined",
+         "smile_used": 0, "personal_smiles": "", "used_GPT": 0, "used_GPT_date": None,
+         "date_registration_premium": "undefined",
          "premium_status_end": "undefined"})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
@@ -229,6 +230,28 @@ async def addOrRemoveValuesSmileInfo(smilesList: [], pastSmilesList: []) -> None
     #         else:
     #             await firestore_client.collection("Smile info").document(str(date.today())).update(
     #                 {smile: str(int(info.to_dict()[smile]) - 1)})
+
+
+async def getUsedGPT(ID: int) -> int:
+    """
+    Функция getUsedGPT используется для получения информации о количестве использований chatGPT.
+    При вызове этой функции в базе увеличивается количество использований chatGPT на 1.
+    Каждый новый день количество использований обнуляется.
+
+    :param ID: Telegram user ID
+    :return: Количество использований chatGPT
+    """
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+
+    if info.to_dict()["used_GPT_date"] != str(date.today()):
+        await firestore_client.collection("Users").document(str(ID)).update({"used_GPT_date": str(date.today()),
+                                                                             "used_GPT": 1})
+        # await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": 0})
+        return 0
+    else:
+        value = info.to_dict()["used_GPT"]
+        await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value + 1})
+        return value
 
 
 async def delUser(ID: int) -> None:
