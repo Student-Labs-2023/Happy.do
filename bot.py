@@ -1,6 +1,7 @@
 import logging
 import os
 from datetime import date, timedelta
+import emoji
 
 import calendar
 from aiogram.types.message import ContentType
@@ -38,6 +39,8 @@ async def on_shutdown(dispatcher):
 
 class UserState(StatesGroup):
     limit_is_over = State()
+    personal_smile_add = State()
+    personal_smile_remove = State()
 
 
 smileys = [
@@ -48,11 +51,12 @@ smileys = [
     "😣", "😥", "😪", "😫", "😴"]
 
 """списки для кнопок"""
-buttons_menu = ["Статистика", "Выбрать смайлик", "Премиум"]
+buttons_menu = ["Статистика", "Выбрать смайлик", "Добавить смайлик", "Премиум"]
 
 buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
+buttons_addSmileToMenu = ["Добавить", "Удалить", "Вернуться"]
 
 premium_list_default = ["1 месяц", "6 месяцев", "1 год", "Вернуться"]
 premium_list_state = ["1 месяц", "6 месяцев", "1 год"]
@@ -114,7 +118,7 @@ async def statisticUserBack(message: types.Message):
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-"""Система отправки уведомлений"""
+"""Система отправки статистики"""
 #-----------------------------------------------------------------------------------------------------------------------
 @dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
@@ -125,18 +129,26 @@ async def statisticUser(message: types.Message):
 @dp.message_handler(text=["День"])
 async def statisticUserDay(message: types.Message, state: FSMContext, day=str(date.today())):
     user_id = message.from_user.id  # ID чата
-    userSmiles = await database.getSmileInfo(user_id, day)
     pathToPicture = await statistics.analiticData(user_id, "day", day)  # путь к картинке со статой
+    emoji_list = smileys + await database.getPersonalSmiles(user_id)
+
+    await message.answer("Ваша статистика за день")
     if pathToPicture != "absent":
-        await message.answer("Ваша статистика за день")
         photo = InputFile(pathToPicture)
+        userSmiles = await database.getSmileInfo(user_id, day)
         sent_message = await message.answer_photo(photo=photo,
-                                                  reply_markup=show_fake_inline_button(smileys, userSmiles))
-        os.remove(pathToPicture)  # удаляем файл с картинкой
+                                                  reply_markup=show_fake_inline_button(emoji_list, userSmiles))
         async with state.proxy() as data:
             data['message_id'] = sent_message.message_id
     else:
-        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+        pathToPicture = pictureNoData.createPictureNoData(user_id, day)
+        photo = InputFile(pathToPicture)
+        sent_message = await message.answer_photo(photo=photo,
+                                                  reply_markup=show_fake_inline_button(emoji_list))
+        async with state.proxy() as data:
+            data['message_id'] = sent_message.message_id
+
+    os.remove(pathToPicture)  # удаляем файл с картинкой
 
 
 @dp.message_handler(text=["Неделя"])
@@ -184,6 +196,8 @@ async def statisticUserAll(message: types.Message):
     Также, добавляет кнопки перелистывания даты в виде стрелок. '''
 def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
     buttons = []
+    keyboard = InlineKeyboardMarkup(row_width=5)
+
     for emoji in emoji_list:
         if emoji in selected_emojis:
             button_text = emoji + "✅"
@@ -191,10 +205,13 @@ def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
             button_text = emoji
         buttons.append(InlineKeyboardButton(button_text, callback_data="fake_buttons"))
 
-    buttons.append(InlineKeyboardButton("⬅️", callback_data=f"fake_left_arrow_{date_offset}"))
-    buttons.append(InlineKeyboardButton("➡️", callback_data=f"fake_right_arrow_{date_offset}"))
+    button1 = InlineKeyboardButton("⬅️", callback_data=f"fake_left_arrow_{date_offset}")
+    button2 = InlineKeyboardButton("➡️", callback_data=f"fake_right_arrow_{date_offset}")
 
-    return InlineKeyboardMarkup(row_width=5).add(*buttons)
+    keyboard.add(*buttons)
+    keyboard.row(button1, button2)
+
+    return keyboard
 
 
 """Функционал для фейк кнопок со смайликами. 
@@ -233,6 +250,8 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
     async with state.proxy() as data:
         msg_id = data['message_id']
 
+    smile_list = smileys + await database.getPersonalSmiles(user_id)
+
     # функция для отправки картинки с отсутствием данных
     async def pastPicture():
         pathToPicture = pictureNoData.createPictureNoData(user_id, new_date)
@@ -244,7 +263,7 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
                 chat_id=user_id,
                 message_id=msg_id,
                 media=photo,
-                reply_markup=show_fake_inline_button(smileys, date_offset=date_offset)
+                reply_markup=show_fake_inline_button(smile_list, date_offset=date_offset)
             )
         os.remove(pathToPicture)
 
@@ -265,7 +284,7 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
                     chat_id=user_id,
                     message_id=msg_id,
                     media=photo,
-                    reply_markup=show_fake_inline_button(smileys, userSmiles, date_offset)
+                    reply_markup=show_fake_inline_button(smile_list, userSmiles, date_offset)
                 )
             os.remove(pathToPicture)  # удаляем файл с картинкой
         else:
@@ -273,10 +292,99 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
     except KeyError:
         await pastPicture()
 
+#-----------------------------------------------------------------------------------------------------------------------
+"""Добавление смайлика к таблице выбора"""
+#-----------------------------------------------------------------------------------------------------------------------
+@dp.message_handler(text=["Добавить смайлик"])
+async def addSmileToMenu(message: types.Message):
+    await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
+
+
+@dp.message_handler(text=["Добавить"])
+async def addSmile(message: types.Message):
+    personal_smiles = await database.getPersonalSmiles(message.from_user.id)
+    if len(personal_smiles) < 10:
+        await message.answer("Отправьте смайлик, который вы хотите добавить.")
+        await UserState.personal_smile_add.set()
+    else:
+        await message.answer("Вы уже добавили максимальное количество смайликов - 10. "
+                             "Вы можете освободить место, удалив один из добавленных смайликов.")
+
+
+
+@dp.message_handler(state=UserState.personal_smile_add)
+async def addPersonalSmile(message: types.Message, state: FSMContext):
+    personal_smile = ""
+    user_id = message.from_user.id
+    smile_list = smileys + await database.getPersonalSmiles(user_id)
+
+    if message.sticker:
+        personal_smile = message.sticker.emoji
+    elif message.text:
+        personal_smile = message.text
+
+    if len(personal_smile) == 1 and bool(emoji.emoji_count(personal_smile)):
+        if personal_smile in smile_list:
+            await message.answer(f"{personal_smile} - такой смайлик уже есть. Выберите другой.")
+        else:
+            await message.answer(f"{personal_smile} - ваш смайл.")
+            await database.addPersonalSmiles(user_id, personal_smile)
+            await state.finish()
+            await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+    elif personal_smile == 'Назад' or personal_smile == 'назад':
+        await state.finish()
+        await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+    else:
+        await message.answer("Неправильный ввод! Отправьте смайлик.\n"
+                             "Если вы не хотите отправлять смайл, то введите: 'Назад'")
+
+
+@dp.message_handler(text=["Удалить"])
+async def deleteSmile(message: types.Message):
+    personal_smiles = await database.getPersonalSmiles(message.from_user.id)
+    if len(personal_smiles) > 0:
+        await message.answer("Отправьте смайлик, который вы хотите удалить.")
+        await UserState.personal_smile_remove.set()
+    else:
+        await message.answer("Вы не добавили ни одного смайлика."
+                             "Можно удалить только добавленные смайлики.")
+
+
+@dp.message_handler(state=UserState.personal_smile_remove)
+async def deletePersonalSmile(message: types.Message, state: FSMContext):
+    personal_smile = ""
+    user_id = message.from_user.id
+    smile_list = await database.getPersonalSmiles(user_id)
+
+    if message.sticker:
+        personal_smile = message.sticker.emoji
+    elif message.text:
+        personal_smile = message.text
+
+    if len(personal_smile) == 1 and bool(emoji.emoji_count(personal_smile)):
+        if personal_smile in smileys:
+            await message.answer(f"{personal_smile} - этот смайлик находится в стандартном меню выбора, "
+                                 f"его нельзя удалять. Выберите другой.")
+        elif not personal_smile in smile_list:
+            await message.answer(f"{personal_smile} - этого смайлика нет в добавленных вами смайликах. Выберите другой.")
+        else:
+            await message.answer(f"{personal_smile} - ваш смайл.")
+            await database.removePersonalSmile(user_id, personal_smile)
+            await state.finish()
+            await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+    elif personal_smile == 'Назад' or personal_smile == 'назад':
+        await state.finish()
+        await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+    else:
+        await message.answer("Неправильный ввод! Отправьте смайлик.\n"
+                             "Если вы не хотите отправлять смайл, то введите: 'Назад'")
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 """Остальные"""
 #-----------------------------------------------------------------------------------------------------------------------
+
+
 def show_button(list_menu):
     """Принимает список и превращает его в кнопки"""
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -310,7 +418,8 @@ def add_checkmark(lst, variable):
 
 @dp.message_handler(text=["Выбрать смайлик"])
 async def show_emoji(message: types.Message):
-    await message.reply('Выберите смайлик:', reply_markup=show_inline_button(smileys))
+    emoji_list = smileys + await database.getPersonalSmiles(message.from_user.id)
+    await message.reply('Выберите смайлик:', reply_markup=show_inline_button(emoji_list))
 
 
 # @dp.callback_query_handler()
@@ -358,9 +467,10 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
         print(selected_emojis)
         await database.addOrChangeSmile(callback_query.from_user.id, str(date.today()), selected_emojis)
 
+        emoji_list = smileys + await database.getPersonalSmiles(user_id)
         await callback_query.message.edit_text(
             "Выбранные смайлики:\n" + "".join(selected_emojis) if selected_emojis else "Выбранных смайликов пока нет.",
-            reply_markup=show_inline_button(smileys, selected_emojis)
+            reply_markup=show_inline_button(emoji_list, selected_emojis)
         )   
 
 
