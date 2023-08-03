@@ -166,11 +166,12 @@ async def delUser(ID: int) -> None:
     await firestore_client.collection("Users").document(str(ID)).delete()
 
 
-async def getSmileInfo(ID: int, day: str) -> dict:
+async def getSmileInfo(ID: int, day: str):
     """
     Функция getSmileInfo используется для получения информации по проставленным смайликам.
 
     При day == "all" возвращается словарь со всеми данными.
+    При другом значении day возвращается список со смайликами за какойто конкретный день.
 
     :param ID: Telegram user ID
     :param day: Дата, по какому дню требуется информация
@@ -182,7 +183,8 @@ async def getSmileInfo(ID: int, day: str) -> dict:
         smiles = dict(sorted(info.to_dict().items()))
         return smiles
     else:
-        return info.to_dict()[day]
+        _ = info.to_dict()[day]
+        return list(_) if ", " not in _ else _.split(", ")  # Возвращает список смайликов за день
 
 
 async def getCountAllUsers() -> int:
