@@ -105,7 +105,10 @@ async def buy_premium(message: types.Message):
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-    await message.answer(f'Привет, {message.from_user.first_name}!')
+    await message.answer(f'Привет, {message.from_user.first_name}! Happy.do – это бот, который помогает пользователям '
+                         f'отслеживать свое ежедневное состояние и деятельность с помощью смайликов. Это уникальный '
+                         f'инструмент рефлексии, который помогает улучшить осознанность и поддерживать эмоциональное '
+                         f'здоровье.')
     user_exists = await database.checkUser(message.from_user.id)
     if not user_exists:
         await database.createUser(message.from_user.id, message.from_user.username)
@@ -300,6 +303,7 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
     except KeyError:
         await pastPicture()
 
+
 #-----------------------------------------------------------------------------------------------------------------------
 """Добавление смайлика к таблице выбора"""
 #-----------------------------------------------------------------------------------------------------------------------
@@ -314,7 +318,8 @@ async def addSmileToMenu(message: types.Message):
 async def addSmile(message: types.Message):
     personal_smiles = await database.getPersonalSmiles(message.from_user.id)
     if len(personal_smiles) < 10:
-        await message.answer("Отправьте смайлик, который вы хотите добавить.", reply_markup=show_button(["Вернуться"]))
+        await message.answer("Отправьте смайлик, который вы хотите добавить. Премиум смайлики добавлять нельзя.",
+                             reply_markup=show_button(["Вернуться"]))
         await UserState.personal_smile_add.set()
     else:
         await message.answer("Вы уже добавили максимальное количество смайликов - 10. "
@@ -408,7 +413,7 @@ async def generationPortraitDay(message: types.Message):
     """
     user_id = message.from_user.id
 
-    if await database.getUsedGPT(user_id) < 2:
+    if await database.getUsedGPT(user_id) < 10:
         try:
             smiles = await database.getSmileInfo(user_id, str(date.today()))
             await message.answer("Портрет генерируется. Дождитесь завершения.",
@@ -430,7 +435,7 @@ async def generationPortraitWeek(message: types.Message):
     """
     user_id = message.from_user.id
 
-    if await database.getUsedGPT(user_id) < 2:
+    if await database.getUsedGPT(user_id) < 10:
 
         smilesDict = await database.getSmileInfo(user_id, "all")
 
