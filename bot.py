@@ -14,7 +14,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from aiogram import Bot, types
 
 from tgbot.utiles.Statistics import statistics, pictureNoData
-from tgbot.utiles import database
+from tgbot.utiles import database, chatGPT
 from config import config
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
@@ -51,7 +51,7 @@ smileys = [
     "😣", "😥", "😪", "😫", "😴"]
 
 """списки для кнопок"""
-buttons_menu = ["Статистика", "Выбрать смайлик", "Добавить смайлик", "Премиум"]
+buttons_menu = ["Статистика", "Выбрать смайлик", "Добавить смайлик", "Сгенерировать портрет", "Премиум"]
 
 buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
@@ -108,7 +108,10 @@ async def buy_premium(message: types.Message):
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-    await message.answer(f'Привет, {message.from_user.first_name}!')
+    await message.answer(f'Привет, {message.from_user.first_name}! Happy.do – это бот, который помогает пользователям '
+                         f'отслеживать свое ежедневное состояние и деятельность с помощью смайликов. Это уникальный '
+                         f'инструмент рефлексии, который помогает улучшить осознанность и поддерживать эмоциональное '
+                         f'здоровье.')
     user_exists = await database.checkUser(message.from_user.id)
     if not user_exists:
         await database.createUser(message.from_user.id, message.from_user.username)
@@ -122,9 +125,9 @@ async def statisticUserBack(message: types.Message):
 
 # -----------------------------------------------------------------------------------------------------------------------
 """Система отправки статистики"""
+#-----------------------------------------------------------------------------------------------------------------------
 
 
-# -----------------------------------------------------------------------------------------------------------------------
 @dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
@@ -195,13 +198,11 @@ async def statisticUserAll(message: types.Message):
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
 
 
-''' Создает инлайн кнопки, которые не влияют на базу данных, 
-    для визуального отображения выбора в статистике за день.
-
-    Также, добавляет кнопки перелистывания даты в виде стрелок. '''
-
-
 def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
+    """ Создает инлайн-кнопки, которые не влияют на базу данных,
+        для визуального отображения выбора в статистике за день.
+
+        Также, добавляет кнопки перелистывания даты в виде стрелок. """
     buttons = []
     keyboard = InlineKeyboardMarkup(row_width=5)
 
@@ -221,21 +222,19 @@ def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
     return keyboard
 
 
-"""Функционал для фейк кнопок со смайликами. 
-   Отправляет пользователю сообщение о том, что здесь выбор менять нельзя"""
-
-
 @dp.callback_query_handler(text="fake_buttons")
 async def fake_inline_button_functions(callback_query: types.CallbackQuery):
+    """Функционал для фейк кнопок со смайликами.
+       Отправляет пользователю сообщение о том, что здесь выбор менять нельзя"""
     await callback_query.answer("Здесь смайлы изменять нельзя!")
-
-
-"""Функционал кнопки перелистывания даты влево. """
 
 
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith(
     "fake_left_arrow_"))  # проверка на наличие текста "fake_left_arrow_" в колбеке
 async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Функционал кнопки перелистывания даты влево.
+    """
     # Извлекаем смещение даты из callback_query.data
     date_offset = int(callback_query.data.split("_")[-1])
     # Уменьшаем смещение на 1 день
@@ -244,11 +243,11 @@ async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext
     await update_message_with_offset(callback_query.message, state, new_date_offset, callback_query.from_user.id)
 
 
-"""Функционал кнопки перелистывания даты вправо."""
-
-
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith("fake_right_arrow_"))
 async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Функционал кнопки перелистывания даты вправо.
+    """
     # Извлекаем смещение даты из callback_query.data
     date_offset = int(callback_query.data.split("_")[-1])
     # Увеличиваем смещение на 1 день
@@ -257,10 +256,10 @@ async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContex
     await update_message_with_offset(callback_query.message, state, new_date_offset, callback_query.from_user.id)
 
 
-"""Функция для изменения сообщения статистики."""
-
-
 async def update_message_with_offset(message: types.Message, state: FSMContext, date_offset: int, user_id: int):
+    """
+    Функция для изменения сообщения статистики.
+    """
     # получаем из стейта message_id
     async with state.proxy() as data:
         msg_id = data['message_id']
@@ -307,12 +306,12 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
     except KeyError:
         await pastPicture()
 
-
-# -----------------------------------------------------------------------------------------------------------------------
+        
+#-----------------------------------------------------------------------------------------------------------------------
 """Добавление смайлика к таблице выбора"""
+#-----------------------------------------------------------------------------------------------------------------------
 
 
-# -----------------------------------------------------------------------------------------------------------------------
 @dp.message_handler(text=["Добавить смайлик"])
 async def addSmileToMenu(message: types.Message):
     await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
@@ -322,7 +321,8 @@ async def addSmileToMenu(message: types.Message):
 async def addSmile(message: types.Message):
     personal_smiles = await database.getPersonalSmiles(message.from_user.id)
     if len(personal_smiles) < 10:
-        await message.answer("Отправьте смайлик, который вы хотите добавить.")
+        await message.answer("Отправьте смайлик, который вы хотите добавить. Премиум смайлики добавлять нельзя.",
+                             reply_markup=show_button(["Вернуться"]))
         await UserState.personal_smile_add.set()
     else:
         await message.answer("Вы уже добавили максимальное количество смайликов - 10. "
@@ -348,12 +348,12 @@ async def addPersonalSmile(message: types.Message, state: FSMContext):
             await database.addPersonalSmiles(user_id, personal_smile)
             await state.finish()
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
-    elif personal_smile == 'Назад' or personal_smile == 'назад':
+    elif personal_smile == 'Вернуться':
         await state.finish()
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     else:
         await message.answer("Неправильный ввод! Отправьте смайлик.\n"
-                             "Если вы не хотите отправлять смайл, то введите: 'Назад'")
+                             "Если вы не хотите отправлять смайл, то нажмите 'Вернуться'")
 
 
 @dp.message_handler(text=["Удалить"])
@@ -390,18 +390,73 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
             await database.removePersonalSmile(user_id, personal_smile)
             await state.finish()
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
-    elif personal_smile == 'Назад' or personal_smile == 'назад':
+    elif personal_smile == 'Вернуться':
         await state.finish()
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     else:
         await message.answer("Неправильный ввод! Отправьте смайлик.\n"
-                             "Если вы не хотите отправлять смайл, то введите: 'Назад'")
+                             "Если вы не хотите отправлять смайл, то выберите: 'Вернуться'")
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+"""Генерация портрета с помощью chatGPT"""
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+@dp.message_handler(text=["Сгенерировать портрет"])
+async def generationPortrait(message: types.Message):
+    await message.answer("Выбери за какой период ты хочешь сгенерировать психологический портрет.",
+                         reply_markup=show_button(["За день", "За неделю", "Вернуться"]))
+
+
+@dp.message_handler(text=["За день"])
+async def generationPortraitDay(message: types.Message):
+    """
+    Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
+    сегодня или вызывал команду генерации портрета более 2 раз, то он не генерируется.
+    """
+    user_id = message.from_user.id
+
+    if await database.getUsedGPT(user_id) < 10:
+        try:
+            smiles = await database.getSmileInfo(user_id, str(date.today()))
+            await message.answer("Портрет генерируется. Дождитесь завершения.",
+                                 reply_markup=types.ReplyKeyboardRemove())
+            await message.answer(await chatGPT.create_psychological_portrait_day(", ".join(smiles)),
+                                 reply_markup=show_button(buttons_menu))
+        except KeyError:
+            await message.answer("Вы не выбрали ни одного смайлика за сегодня.",
+                                 reply_markup=show_button(buttons_menu))
+    else:
+        await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
+
+
+@dp.message_handler(text=["За неделю"])
+async def generationPortraitWeek(message: types.Message):
+    """
+    Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
+    хотя бы 7 дней или вызывал эту команду более 2 раз, то портрет не генерируется.
+    """
+    user_id = message.from_user.id
+
+    if await database.getUsedGPT(user_id) < 10:
+
+        smilesDict = await database.getSmileInfo(user_id, "all")
+
+        if len(smilesDict) < 7:
+            await message.answer("Слишком мало информации. Для получения портрета необходимо "
+                                 "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
+        else:
+            await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([]))
+            smilesDict = dict(list(smilesDict.items())[-7:])
+            await message.answer(await chatGPT.create_psychological_portrait_week(smilesDict),
+                                 reply_markup=show_button(buttons_menu))
+    else:
+        await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
 
 
 # -----------------------------------------------------------------------------------------------------------------------
 """Остальные"""
-
-
 # -----------------------------------------------------------------------------------------------------------------------
 
 

@@ -25,8 +25,8 @@ async def createUser(ID: int, name: str) -> None:
     """
     await firestore_client.collection("Users").document(str(ID)).set(
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
-
-         "smile_used": 0, "date_registration_premium": "undefined", "premium_status_end": "undefined"})
+         "smile_used": 0, "personal_smiles": "", "used_GPT": 0, "used_GPT_date": None, "date_registration_premium": "undefined",
+         "premium_status_end": "undefined"}})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
@@ -245,7 +245,7 @@ async def getSmileInfo(ID: int, day: str):
     Функция getSmileInfo используется для получения информации по проставленным смайликам.
 
     При day == "all" возвращается словарь со всеми данными.
-    При другом значении day возвращается список со смайликами за какойто конкретный день.
+    При другом значении day возвращается список со смайликами за какой-то конкретный день.
 
     :param ID: Telegram user ID
     :param day: Дата, по какому дню требуется информация
