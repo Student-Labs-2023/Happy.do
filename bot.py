@@ -14,7 +14,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from aiogram import Bot, types
 
 from tgbot.utiles.Statistics import statistics, pictureNoData
-from tgbot.utiles import database
+from tgbot.utiles import database, chatGPT
 from config import config
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
@@ -51,7 +51,7 @@ smileys = [
     "😣", "😥", "😪", "😫", "😴"]
 
 """списки для кнопок"""
-buttons_menu = ["Статистика", "Выбрать смайлик", "Добавить смайлик", "Премиум"]
+buttons_menu = ["Статистика", "Выбрать смайлик", "Добавить смайлик", "Сгенерировать портрет", "Премиум"]
 
 buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
@@ -120,6 +120,8 @@ async def statisticUserBack(message: types.Message):
 #-----------------------------------------------------------------------------------------------------------------------
 """Система отправки статистики"""
 #-----------------------------------------------------------------------------------------------------------------------
+
+
 @dp.message_handler(text=["Статистика"])
 async def statisticUser(message: types.Message):
     user_id = message.from_user.id  # ID чата
@@ -190,11 +192,11 @@ async def statisticUserAll(message: types.Message):
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
 
 
-''' Создает инлайн кнопки, которые не влияют на базу данных, 
-    для визуального отображения выбора в статистике за день.
-
-    Также, добавляет кнопки перелистывания даты в виде стрелок. '''
 def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
+    """ Создает инлайн-кнопки, которые не влияют на базу данных,
+        для визуального отображения выбора в статистике за день.
+
+        Также, добавляет кнопки перелистывания даты в виде стрелок. """
     buttons = []
     keyboard = InlineKeyboardMarkup(row_width=5)
 
@@ -214,17 +216,19 @@ def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
     return keyboard
 
 
-"""Функционал для фейк кнопок со смайликами. 
-   Отправляет пользователю сообщение о том, что здесь выбор менять нельзя"""
 @dp.callback_query_handler(text="fake_buttons")
 async def fake_inline_button_functions(callback_query: types.CallbackQuery):
+    """Функционал для фейк кнопок со смайликами.
+       Отправляет пользователю сообщение о том, что здесь выбор менять нельзя"""
     await callback_query.answer("Здесь смайлы изменять нельзя!")
 
 
-"""Функционал кнопки перелистывания даты влево. """
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith(
     "fake_left_arrow_"))  # проверка на наличие текста "fake_left_arrow_" в колбеке
 async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Функционал кнопки перелистывания даты влево.
+    """
     # Извлекаем смещение даты из callback_query.data
     date_offset = int(callback_query.data.split("_")[-1])
     # Уменьшаем смещение на 1 день
@@ -233,9 +237,11 @@ async def fake_left_arrow(callback_query: types.CallbackQuery, state: FSMContext
     await update_message_with_offset(callback_query.message, state, new_date_offset, callback_query.from_user.id)
 
 
-"""Функционал кнопки перелистывания даты вправо."""
 @dp.callback_query_handler(lambda callback_query: callback_query.data.startswith("fake_right_arrow_"))
 async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContext):
+    """
+    Функционал кнопки перелистывания даты вправо.
+    """
     # Извлекаем смещение даты из callback_query.data
     date_offset = int(callback_query.data.split("_")[-1])
     # Увеличиваем смещение на 1 день
@@ -244,8 +250,10 @@ async def fake_right_arrow(callback_query: types.CallbackQuery, state: FSMContex
     await update_message_with_offset(callback_query.message, state, new_date_offset, callback_query.from_user.id)
 
 
-"""Функция для изменения сообщения статистики."""
 async def update_message_with_offset(message: types.Message, state: FSMContext, date_offset: int, user_id: int):
+    """
+    Функция для изменения сообщения статистики.
+    """
     # получаем из стейта message_id
     async with state.proxy() as data:
         msg_id = data['message_id']
@@ -378,6 +386,28 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
     else:
         await message.answer("Неправильный ввод! Отправьте смайлик.\n"
                              "Если вы не хотите отправлять смайл, то введите: 'Назад'")
+
+#-----------------------------------------------------------------------------------------------------------------------
+"""Генерация портрета с помощью chatGPT"""
+#-----------------------------------------------------------------------------------------------------------------------
+
+
+@dp.message_handler(text=["Сгенерировать портрет"])
+async def generationArt(message: types.Message):
+    """
+    Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
+    хотя бы 7 дней, то портрет не генерируется.
+    """
+    user_id = message.from_user.id
+
+    smilesDict = await database.getSmileInfo(user_id, "all")
+    if len(smilesDict) < 7:
+        await message.answer("Слишком мало информации. Для получения портрета необходимо "
+                             "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
+    else:
+        smilesDict = dict(list(smilesDict.items())[-7:])
+        await message.answer(await chatGPT.create_psychological_portrait(smilesDict),
+                             reply_markup=show_button(buttons_menu))
 
 
 #-----------------------------------------------------------------------------------------------------------------------
