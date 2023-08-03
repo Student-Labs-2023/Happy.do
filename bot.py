@@ -314,7 +314,7 @@ async def addSmileToMenu(message: types.Message):
 async def addSmile(message: types.Message):
     personal_smiles = await database.getPersonalSmiles(message.from_user.id)
     if len(personal_smiles) < 10:
-        await message.answer("Отправьте смайлик, который вы хотите добавить.")
+        await message.answer("Отправьте смайлик, который вы хотите добавить.", reply_markup=show_button(["Вернуться"]))
         await UserState.personal_smile_add.set()
     else:
         await message.answer("Вы уже добавили максимальное количество смайликов - 10. "
@@ -340,12 +340,12 @@ async def addPersonalSmile(message: types.Message, state: FSMContext):
             await database.addPersonalSmiles(user_id, personal_smile)
             await state.finish()
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
-    elif personal_smile == 'Назад' or personal_smile == 'назад':
+    elif personal_smile == 'Вернуться':
         await state.finish()
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     else:
         await message.answer("Неправильный ввод! Отправьте смайлик.\n"
-                             "Если вы не хотите отправлять смайл, то введите: 'Назад'")
+                             "Если вы не хотите отправлять смайл, то нажмите 'Вернуться'")
 
 
 @dp.message_handler(text=["Удалить"])
@@ -381,12 +381,12 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
             await database.removePersonalSmile(user_id, personal_smile)
             await state.finish()
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
-    elif personal_smile == 'Назад' or personal_smile == 'назад':
+    elif personal_smile == 'Вернуться':
         await state.finish()
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     else:
         await message.answer("Неправильный ввод! Отправьте смайлик.\n"
-                             "Если вы не хотите отправлять смайл, то введите: 'Назад'")
+                             "Если вы не хотите отправлять смайл, то выберите: 'Вернуться'")
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -396,6 +396,34 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
 
 @dp.message_handler(text=["Сгенерировать портрет"])
 async def generationPortrait(message: types.Message):
+    await message.answer("Выбери за какой период ты хочешь сгенерировать психологический портрет.",
+                         reply_markup=show_button(["За день", "За неделю", "Вернуться"]))
+
+
+@dp.message_handler(text=["За день"])
+async def generationPortraitDay(message: types.Message):
+    """
+    Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
+    сегодня или вызывал команду генерации портрета более 2 раз, то он не генерируется.
+    """
+    user_id = message.from_user.id
+
+    if await database.getUsedGPT(user_id) < 2:
+        try:
+            smiles = await database.getSmileInfo(user_id, str(date.today()))
+            await message.answer("Портрет генерируется. Дождитесь завершения.",
+                                 reply_markup=types.ReplyKeyboardRemove())
+            await message.answer(await chatGPT.create_psychological_portrait_day(", ".join(smiles)),
+                                 reply_markup=show_button(buttons_menu))
+        except KeyError:
+            await message.answer("Вы не выбрали ни одного смайлика за сегодня.",
+                                 reply_markup=show_button(buttons_menu))
+    else:
+        await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
+
+
+@dp.message_handler(text=["За неделю"])
+async def generationPortraitWeek(message: types.Message):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
     хотя бы 7 дней или вызывал эту команду более 2 раз, то портрет не генерируется.
@@ -403,7 +431,6 @@ async def generationPortrait(message: types.Message):
     user_id = message.from_user.id
 
     if await database.getUsedGPT(user_id) < 2:
-        # await database.addUsedGPT(user_id)
 
         smilesDict = await database.getSmileInfo(user_id, "all")
 
@@ -411,9 +438,9 @@ async def generationPortrait(message: types.Message):
             await message.answer("Слишком мало информации. Для получения портрета необходимо "
                                  "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
         else:
-            await message.answer("Портрет генерируется. Дождитесь завершения.")
+            await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([]))
             smilesDict = dict(list(smilesDict.items())[-7:])
-            await message.answer(await chatGPT.create_psychological_portrait(smilesDict),
+            await message.answer(await chatGPT.create_psychological_portrait_week(smilesDict),
                                  reply_markup=show_button(buttons_menu))
     else:
         await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")

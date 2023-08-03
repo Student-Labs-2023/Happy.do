@@ -25,7 +25,7 @@ async def createUser(ID: int, name: str) -> None:
     """
     await firestore_client.collection("Users").document(str(ID)).set(
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
-         "smile_used": 0, "personal_smiles": None, "used_GPT": 0, "used_GPT_date": None})
+         "smile_used": 0, "personal_smiles": "", "used_GPT": 0, "used_GPT_date": None})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
@@ -221,7 +221,7 @@ async def getUsedGPT(ID: int) -> int:
         # await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": 0})
         return 0
     else:
-        value = await info.to_dict()["used_GPT"]
+        value = info.to_dict()["used_GPT"]
         await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value + 1})
         return value
 
