@@ -140,13 +140,19 @@ async def statisticUserDay(message: types.Message, state: FSMContext, day=str(da
     pathToPicture = await statistics.analiticData(user_id, "day", day)  # путь к картинке со статой
     emoji_list = smileys + await database.getPersonalSmiles(user_id)
 
-    await message.answer("Ваша статистика за день")
+    # await message.answer("Ваша статистика за день")
     if pathToPicture != "absent":
         photo = InputFile(pathToPicture)
         userSmiles = await database.getSmileInfo(user_id, day)
         sent_message = await message.answer_photo(photo=photo,
                                                   reply_markup=show_fake_inline_button(emoji_list, userSmiles))
         async with state.proxy() as data:
+            if "message_id" in data:
+                try:
+                    await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
+                    print(f"Сообщение с ID {data['message_id']} удалено.")
+                except Exception as e:
+                    print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
             data['message_id'] = sent_message.message_id
     else:
         pathToPicture = pictureNoData.createPictureNoData(user_id, day)
@@ -154,6 +160,12 @@ async def statisticUserDay(message: types.Message, state: FSMContext, day=str(da
         sent_message = await message.answer_photo(photo=photo,
                                                   reply_markup=show_fake_inline_button(emoji_list))
         async with state.proxy() as data:
+            if "message_id" in data:
+                try:
+                    await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
+                    print(f"Сообщение с ID {data['message_id']} удалено.")
+                except Exception as e:
+                    print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
             data['message_id'] = sent_message.message_id
 
     os.remove(pathToPicture)  # удаляем файл с картинкой
