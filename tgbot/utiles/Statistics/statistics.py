@@ -15,10 +15,10 @@ async def compilingList(list: []):
 
     return newList
 
+
 """ Подсчитывание кол-ва одинаковых смайликов """
-async def getData(ID, period):
+async def getData(ID, period, day):
     smilesDict = await database.getSmileInfo(ID, "all")
-    # print(smilesDict)
 
     if period == "month":
         if len(smilesDict) < 31:
@@ -34,8 +34,7 @@ async def getData(ID, period):
             smilesList = await compilingList(smilesList)
     elif period == "day":
         try:
-            smilesList = smilesDict[str(date.today())].split(", ")
-            print(smilesList)
+            smilesList = smilesDict[day].split(", ")
             smilesList = await compilingList(smilesList)
         except KeyError:
             raise ValueError
@@ -49,13 +48,12 @@ async def getData(ID, period):
     return cnt
 
 
-async def analiticData(ID, period):
+async def analiticData(ID, period, day=str(date.today())):
     try:
-        smiles = await getData(ID, period)  # словарь со статистикой по смайлам
+        smiles = await getData(ID, period, day)  # словарь со статистикой по смайлам
     except ValueError:
         return "absent"
 
-    # print(smiles)
     summ = 0  # сумма всех значений
 
     """ Разделение словаря на два списка """
@@ -69,32 +67,23 @@ async def analiticData(ID, period):
 
     maxValues = sorted(values, reverse=True)[: 4 if size == 6 else size]  # максимальные значения
     maxKeys = []  # ключи максимальных значений
-    # print(maxValues)
-
 
     """ Получаем id макс значений """
     for i in range(len(values)):
         if (values[i] in maxValues) and (len(maxKeys) < 4 if size == 6 else 5):
             maxKeys.append(keys[i])
         summ += values[i]
-    # print(maxKeys)
-    # print(summ)
 
     """ Перезаписываем список в правильном порядке """
     for i in range(4 if size == 6 else size):
-        # if (i >= len(smiles)): break
         maxValues[i] = smiles[maxKeys[i]]
-
-    # print(maxValues)
-
 
     """ Части в процентном соотношении """
     sizes = [round(maxValues[i] / summ, 2) for i in range(4 if size == 6 else size)]
     if size == 6:
         sizes.append(round((summ - sum(maxValues)) / summ, 2))
         maxKeys.append('Другие')
-    # print(sizes)
 
     """ Вызов создания круговой диаграммы """
-    return diagrams.createCircularChart(ID, maxKeys, sizes)
+    return diagrams.createCircularChart(ID, maxKeys, sizes, day if period == 'day' else '')
 

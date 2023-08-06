@@ -5,6 +5,8 @@ from pydantic import SecretStr
 class Settings(BaseSettings):
     BOT_TOKEN: SecretStr
     PAYMENTS_TOKEN: SecretStr
+    OPENAI_API_KEY: SecretStr
+
     WEBHOOK_HOST: str = 'host'
     WEBHOOK_PATH: str = f'/webhook/'
 
@@ -15,6 +17,7 @@ class Settings(BaseSettings):
     PATH_CONTENT_FILE: str
 
     ADMIN_ID: int
+
     class Config:
         env_file = '.env'
         env_file_encoding = 'utf-8'
