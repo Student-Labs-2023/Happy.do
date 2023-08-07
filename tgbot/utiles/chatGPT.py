@@ -6,7 +6,7 @@ from config import config
 openai.api_key = config.OPENAI_API_KEY.get_secret_value()
 
 
-async def create_psychological_portrait_week(smilesDict: {}) -> str:
+async def create_psychological_portrait_week(smilesDict: str) -> str:
     """
     Генерирует психологический портрет за неделю.
 
@@ -15,7 +15,7 @@ async def create_psychological_portrait_week(smilesDict: {}) -> str:
 
     :return: Возвращает текст сгенерированного сообщения chatGPT.
     """
-    smilesStr = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
+    # smilesStr = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
 
     chat_completion_resp = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
@@ -43,7 +43,7 @@ async def create_psychological_portrait_day(smilesDay: str) -> str:
     """
     Генерирует рекомендации за день.
 
-    :param smilesDay:
+    :param smilesDay: Смайлики выбранные за день в строковом формате.
     :return: Возвращает текст сгенерированного сообщения chatGPT.
     """
 

@@ -1,4 +1,6 @@
 import json
+import hashlib, base64
+
 from datetime import date, timedelta
 
 from google.cloud.firestore import AsyncClient
@@ -232,6 +234,54 @@ async def addOrRemoveValuesSmileInfo(smilesList: [], pastSmilesList: []) -> None
     #                 {smile: str(int(info.to_dict()[smile]) - 1)})
 
 
+async def addPortrait(body: str, text: str, period: str) -> None:
+    """
+    Функция addPortrait используется для добавления сгенерированноого портрета в базу данных.
+
+    :param body: Последовательность смайликов.
+    :param text: Сгенерированный портрет.
+    :param period: Период, за который должен генерироваться портрет.
+    """
+
+    key = base64.b16encode(hashlib.sha256(body.encode('utf-8')).digest()).decode("utf-8")
+
+    await firestore_client.collection("Portraits").document(period).update({key: text})
+
+
+async def getExistingPortrait(body: str, period: str) -> str:
+    """
+    Функция getExistingPortrait используется для проверки и получения имеющегося портрета в базе по определенной
+    последовательности смайликов.
+
+    :param body: Последовательность смайликов.
+    :param period: Период, за который должен генерироваться портрет.
+    :return: Если находит портрет, то возвращает его, иначе возвращает строку "NotExist".
+    """
+
+    key = base64.b16encode(hashlib.sha256(body.encode('utf-8')).digest()).decode("utf-8")
+
+    info = await firestore_client.collection("Portraits").document(period).get()
+
+    try:
+        return info.to_dict()[key]
+    except KeyError:
+        return "NotExist"
+
+
+async def addUsedGPT(ID: int) -> None:
+    """
+    Функция addUsedGPT используется для увеличения числа использований chatGPT.
+    При вызове этой функции в базе увеличивается количество использований chatGPT на 1.
+
+    :param ID: Telegram user ID
+    """
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+
+    value = info.to_dict()["used_GPT"]
+    await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value + 1})
+
+
+
 async def getUsedGPT(ID: int) -> int:
     """
     Функция getUsedGPT используется для получения информации о количестве использований chatGPT.
@@ -245,13 +295,11 @@ async def getUsedGPT(ID: int) -> int:
 
     if info.to_dict()["used_GPT_date"] != str(date.today()):
         await firestore_client.collection("Users").document(str(ID)).update({"used_GPT_date": str(date.today()),
-                                                                             "used_GPT": 1})
-        # await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": 0})
+                                                                             "used_GPT": 0})
         return 0
     else:
-        value = info.to_dict()["used_GPT"]
-        await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value + 1})
-        return value
+        return info.to_dict()["used_GPT"]
+
 
 
 async def delUser(ID: int) -> None:

@@ -150,7 +150,6 @@ async def statisticUserDay(message: types.Message, state: FSMContext, day=str(da
             if "message_id" in data:
                 try:
                     await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
-                    print(f"Сообщение с ID {data['message_id']} удалено.")
                 except Exception as e:
                     print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
             data['message_id'] = sent_message.message_id
@@ -163,7 +162,6 @@ async def statisticUserDay(message: types.Message, state: FSMContext, day=str(da
             if "message_id" in data:
                 try:
                     await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
-                    print(f"Сообщение с ID {data['message_id']} удалено.")
                 except Exception as e:
                     print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
             data['message_id'] = sent_message.message_id
@@ -278,8 +276,10 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
 
     smile_list = smileys + await database.getPersonalSmiles(user_id)
 
-    # функция для отправки картинки с отсутствием данных
     async def pastPicture():
+        """
+        Функция для отправки картинки с отсутствием данных
+        """
         pathToPicture = pictureNoData.createPictureNoData(user_id, new_date)
 
         with open(pathToPicture, 'rb') as file:
@@ -424,18 +424,23 @@ async def generationPortrait(message: types.Message):
 @dp.message_handler(text=["За день"])
 async def generationPortraitDay(message: types.Message):
     """
-    Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
+    Отправляет пользователю сгенерированный психологический портрет chatGPT за день. Если пользователь не вводил смайлики
     сегодня или вызывал команду генерации портрета более 2 раз, то он не генерируется.
     """
     user_id = message.from_user.id
 
-    if await database.getUsedGPT(user_id) < 10:
+    if await database.getUsedGPT(user_id) < 2:
         try:
             smiles = await database.getSmileInfo(user_id, str(date.today()))
+            smiles = ", ".join(smiles)
             await message.answer("Портрет генерируется. Дождитесь завершения.",
                                  reply_markup=types.ReplyKeyboardRemove())
-            await message.answer(await chatGPT.create_psychological_portrait_day(", ".join(smiles)),
-                                 reply_markup=show_button(buttons_menu))
+            portrait = await database.getExistingPortrait(smiles, "day")
+            if portrait == "NotExist":
+                portrait = await chatGPT.create_psychological_portrait_day(", ".join(smiles))
+                await database.addPortrait(smiles, portrait, "day")
+            await message.answer(portrait, reply_markup=show_button(buttons_menu))
+            await database.addUsedGPT(user_id)
         except KeyError:
             await message.answer("Вы не выбрали ни одного смайлика за сегодня.",
                                  reply_markup=show_button(buttons_menu))
@@ -446,12 +451,12 @@ async def generationPortraitDay(message: types.Message):
 @dp.message_handler(text=["За неделю"])
 async def generationPortraitWeek(message: types.Message):
     """
-    Отправляет пользователю сгенерированный психологический портрет chatGPT. Если пользователь не вводил смайлики
+    Отправляет пользователю сгенерированный психологический портрет chatGPT за неделю. Если пользователь не вводил смайлики
     хотя бы 7 дней или вызывал эту команду более 2 раз, то портрет не генерируется.
     """
     user_id = message.from_user.id
 
-    if await database.getUsedGPT(user_id) < 10:
+    if await database.getUsedGPT(user_id) < 2:
 
         smilesDict = await database.getSmileInfo(user_id, "all")
 
@@ -461,8 +466,14 @@ async def generationPortraitWeek(message: types.Message):
         else:
             await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([]))
             smilesDict = dict(list(smilesDict.items())[-7:])
-            await message.answer(await chatGPT.create_psychological_portrait_week(smilesDict),
-                                 reply_markup=show_button(buttons_menu))
+            smiles = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
+
+            portrait = await database.getExistingPortrait(smiles, "week")
+            if portrait == "NotExist":
+                portrait = await chatGPT.create_psychological_portrait_week(", ".join(smiles))
+                await database.addPortrait(smiles, portrait, "week")
+            await message.answer(portrait, reply_markup=show_button(buttons_menu))
+            await database.addUsedGPT(user_id)
     else:
         await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
 
@@ -477,14 +488,6 @@ def show_button(list_menu):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(*list_menu)
     return keyboard
-
-
-# def show_inline_button(list_emoji):
-#     """Принимает список и превращает его в инлайн кнопки"""
-#     keyboard = InlineKeyboardMarkup(row_width=5)
-#     buttons = [InlineKeyboardButton(smiley, callback_data=smiley) for smiley in list_emoji]
-#     keyboard.add(*buttons)
-#     return keyboard
 
 
 def show_inline_button(emoji_list, selected_emojis=[]):
