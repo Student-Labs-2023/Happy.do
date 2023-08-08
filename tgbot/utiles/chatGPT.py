@@ -6,7 +6,7 @@ from config import config
 openai.api_key = config.OPENAI_API_KEY.get_secret_value()
 
 
-async def create_psychological_portrait_week(smilesDict: {}) -> str:
+async def create_psychological_portrait_week(smilesWeek: str) -> str:
     """
     Генерирует психологический портрет за неделю.
 
@@ -15,7 +15,7 @@ async def create_psychological_portrait_week(smilesDict: {}) -> str:
 
     :return: Возвращает текст сгенерированного сообщения chatGPT.
     """
-    smilesStr = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
+    # smilesStr = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
 
     chat_completion_resp = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
@@ -23,7 +23,7 @@ async def create_psychological_portrait_week(smilesDict: {}) -> str:
                 {"role": "system", "content": 'Пользователь в течении недели отправлял телеграм-боту смайлики, '
                                               'которые характеризовали его эмоциональное состояние на момент '
                                               'отправки смайлика. Ты получаешь эти смайлики в следующем виде: '
-                                              '"(дата): (набор смайликов через запятую)" и затем '
+                                              '"(Количество дней до сегодняшней даты): (набор смайликов через запятую)" и затем '
                                               'В качестве вывода ты отправляешь ему'
                                               'рекомендации как улучшить свое психологическое здоровье, очень ёмко и содержательно '
                                               'Сообщение начинаешь со слов: "Привет! Я проанализировал все смайлики, '
@@ -31,7 +31,7 @@ async def create_psychological_portrait_week(smilesDict: {}) -> str:
                                               'Общайся с пользователем как с другом. Твоё сообщение должно быть буквально '
                                               'не больше 7 предложений. Твоё сообщение должно быть очень ёмким!'
                 },  # Задаем поведение помощнику
-                {"role": "user", "content": f"Дай мне рекомендации по этим данным. \n{smilesStr}"}  # Задаем вопрос боту
+                {"role": "user", "content": f"Дай мне рекомендации по этим данным. \n{smilesWeek}"}  # Задаем вопрос боту
                 ],
                 max_tokens=700
     )
@@ -43,7 +43,7 @@ async def create_psychological_portrait_day(smilesDay: str) -> str:
     """
     Генерирует рекомендации за день.
 
-    :param smilesDay:
+    :param smilesDay: Смайлики выбранные за день в строковом формате.
     :return: Возвращает текст сгенерированного сообщения chatGPT.
     """
 
