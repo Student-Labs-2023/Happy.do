@@ -3,7 +3,6 @@ import os
 from datetime import date, datetime, timedelta
 import emoji
 
-import calendar
 from aiogram.types.message import ContentType
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import Dispatcher, FSMContext
@@ -16,6 +15,7 @@ from aiogram import Bot, types
 from tgbot.utiles.Statistics import statistics, pictureNoData
 from tgbot.utiles import database, chatGPT
 from config import config
+from tgbot.utiles.supportFunctions import converting_dates_to_days
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
 storage = MemoryStorage()
@@ -465,7 +465,7 @@ async def generationPortraitWeek(message: types.Message):
                                  "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
         else:
             await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([]))
-            smilesDict = dict(list(smilesDict.items())[-7:])
+            smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-7:]))
             smiles = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
 
             portrait = await database.getExistingPortrait(smiles, "week")
