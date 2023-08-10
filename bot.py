@@ -425,7 +425,7 @@ async def generationPortrait(message: types.Message):
     is_premium = await database.checkPremiumUser(message.from_user.id)
     if is_premium:
         await message.answer("Выбери за какой период ты хочешь сгенерировать психологический портрет.",
-                             reply_markup=show_inline_button(["За день", "За неделю", "Вернуться"]))
+                             reply_markup=show_button(["За день", "За неделю", "Вернуться"]))
     else:
         await message.answer(
             "Для использования генерации психологического портрета с помощью chatGPT необходимо приобрести подписку\n"
