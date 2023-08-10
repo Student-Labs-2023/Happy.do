@@ -213,19 +213,11 @@ def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
         для визуального отображения выбора в статистике за день.
 
         Также, добавляет кнопки перелистывания даты в виде стрелок. """
-    buttons = []
-    keyboard = InlineKeyboardMarkup(row_width=5)
-
-    for emoji in emoji_list:
-        if emoji in selected_emojis:
-            button_text = emoji + "✅"
-        else:
-            button_text = emoji
-        buttons.append(InlineKeyboardButton(button_text, callback_data="fake_buttons"))
-
+    buttons = [InlineKeyboardButton(emoji + "✅" if emoji in selected_emojis else emoji, callback_data="fake_buttons") for emoji in emoji_list]
     button1 = InlineKeyboardButton("⬅️", callback_data=f"fake_left_arrow_{date_offset}")
     button2 = InlineKeyboardButton("➡️", callback_data=f"fake_right_arrow_{date_offset}")
 
+    keyboard = InlineKeyboardMarkup(row_width=5)
     keyboard.add(*buttons)
     keyboard.row(button1, button2)
 
@@ -464,7 +456,7 @@ async def generationPortraitWeek(message: types.Message):
             await message.answer("Слишком мало информации. Для получения портрета необходимо "
                                  "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
         else:
-            await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([]))
+            await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([""]))
             smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-7:]))
             smiles = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
 
@@ -491,15 +483,9 @@ def show_button(list_menu):
 
 
 def show_inline_button(emoji_list, selected_emojis=[]):
-    buttons = []
-    for emoji in emoji_list:
-        if emoji in selected_emojis:
-            button_text = emoji + "✅"
-        else:
-            button_text = emoji
-        buttons.append(InlineKeyboardButton(button_text, callback_data=emoji))
+    buttons = [InlineKeyboardButton(emoji + "✅" if emoji in selected_emojis
+                                    else emoji, callback_data=emoji) for emoji in emoji_list]
     return InlineKeyboardMarkup(row_width=5).add(*buttons)
-
 
 def add_checkmark(lst, variable):
     return [elem + "✅" if elem == variable else elem for elem in lst]
