@@ -29,7 +29,7 @@ async def createUser(ID: int, name: str) -> None:
         {"name": name, "status": "default", "notification": "22:00", "registration_date": str(date.today()),
          "smile_used": 0, "personal_smiles": "", "used_GPT": 0, "used_GPT_date": None,
          "date_registration_premium": "undefined",
-         "premium_status_end": "undefined"})
+         "premium_status_end": "undefined", "prev_invoice_msg_id": None, "prev_smile_msg_id": None, "state": None})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
 
 
@@ -281,7 +281,6 @@ async def addUsedGPT(ID: int) -> None:
     await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value + 1})
 
 
-
 async def getUsedGPT(ID: int) -> int:
     """
     Функция getUsedGPT используется для получения информации о количестве использований chatGPT.
@@ -299,7 +298,6 @@ async def getUsedGPT(ID: int) -> int:
         return 0
     else:
         return info.to_dict()["used_GPT"]
-
 
 
 async def delUser(ID: int) -> None:
@@ -439,8 +437,8 @@ async def premiumStatus(ID: int, period: str) -> None:
 
 async def checkPremiumUser(ID: int) -> bool:
     info = await firestore_client.collection("Users").document(str(ID)).get()
-    _Info = info.to_dict()["status"]
-    if _Info == "premium":
+    info = info.to_dict()["status"]
+    if info == "premium":
         return True
     else:
         return False
@@ -448,6 +446,79 @@ async def checkPremiumUser(ID: int) -> bool:
 
 async def infoPremiumUser(ID: int) -> str:
     info = await firestore_client.collection("Users").document(str(ID)).get()
-    period = info.to_dict()["premium_status_end"]
-    date = info.to_dict()["date_registration_premium"]
-    return f"У вас активен премиум статус до {period}"
+    Date = info.to_dict()["premium_status_end"]
+    return f"У вас активен премиум статус до {Date}"
+
+
+async def updateInvoiceMsgID(ID: int, msg_id: int) -> None:
+    """
+    Функция updateInvoiceMsgID используется для обновления поля 'prev_invoice_msg_id' значением msg_id.
+
+    :param ID: Telegram user ID
+    :param msg_id: Telegram message ID
+    """
+
+    await firestore_client.collection("Users").document(str(ID)).update({"prev_invoice_msg_id": msg_id})
+
+
+async def updateSmileMsgID(ID: int, msg_id: int) -> None:
+    """
+    Функция updateSmileMsgID используется для обновления поля 'prev_smile_msg_id' значением msg_id.
+
+    :param ID: Telegram user ID
+    :param msg_id: Telegram message ID
+    """
+
+    await firestore_client.collection("Users").document(str(ID)).update({"prev_smile_msg_id": msg_id})
+
+
+async def getPrevInvoiceMsgID(ID: int) -> int | None:
+    """
+    Функция getInvoiceMsgID используется для получения ID последнего сообщения с invoice'ом.
+
+    :param ID: Telegram user ID
+    """
+
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+    info = info.to_dict()["prev_invoice_msg_id"]
+    return info
+
+
+async def getPrevSmileMsgID(ID: int) -> int | None:
+    """
+    Функция getSmileMsgID используется для получения ID последнего сообщения со смайликами.
+
+    :param ID: Telegram user ID
+    """
+
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+    info = info.to_dict()["prev_smile_msg_id"]
+    return info
+
+
+async def getUsersState() -> dict | None:
+    """
+    Функция getUserState используется для получения state пользователей.
+
+    """
+
+    StateDict = {}
+    async for user_data in firestore_client.collection("Users").stream():
+        user_state = user_data.to_dict()["state"]
+        if user_state is not None:
+            StateDict[user_data.id] = user_state
+    if StateDict == {}:
+        return None
+    print(StateDict)
+    return StateDict
+
+
+async def setUserState(ID: int, state: str):
+    """
+    Функция setUserState используется для обновления поля 'state'.
+
+    :param ID: Telegram user ID
+    :param state: Состояние пользователя
+    :return:
+    """
+    await firestore_client.collection("Users").document(str(ID)).update({"state": state})
