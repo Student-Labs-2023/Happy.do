@@ -477,7 +477,7 @@ async def generationPortraitWeek(message: types.Message):
                 await message.answer("Слишком мало информации. Для получения портрета необходимо "
                                      "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
             else:
-                await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([]))
+                await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([""]))
                 smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-7:]))
                 smiles = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
 
@@ -488,22 +488,8 @@ async def generationPortraitWeek(message: types.Message):
                 await message.answer(portrait, reply_markup=show_button(buttons_menu))
                 await database.addUsedGPT(user_id)
         else:
-#feature/limits_and_delete_msg
             await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
-=======
-            await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([""]))
-            smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-7:]))
-            smiles = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
 
-            portrait = await database.getExistingPortrait(smiles, "week")
-            if portrait == "NotExist":
-                portrait = await chatGPT.create_psychological_portrait_week(", ".join(smiles))
-                await database.addPortrait(smiles, portrait, "week")
-            await message.answer(portrait, reply_markup=show_button(buttons_menu))
-            await database.addUsedGPT(user_id)
-    else:
-        await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
-#velop
 
 
 # -----------------------------------------------------------------------------------------------------------------------
