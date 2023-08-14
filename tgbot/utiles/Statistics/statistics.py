@@ -1,6 +1,7 @@
+import datetime
 from collections import Counter
 from datetime import date
-
+from datetime import datetime, timedelta
 from tgbot.utiles import database
 from tgbot.utiles.Statistics import diagrams
 
@@ -15,23 +16,41 @@ async def compilingList(list: []):
 
     return newList
 
+def day_counter(period, smilesDict):
+    """
+        Функция day_counter используется для получения информации о дате от которой начинать брать статистику из БД.
+
+        :param period: за какой период хотят взять статистику (31 или 7) в днях
+        :return: Количество дней которые надо взять из БД
+        """
+    last_period_dates = []
+    current_day = date.today()
+    for i in range(period):
+        last_period_dates.append(str(current_day))
+        current_day -= timedelta(days=1)
+    smilesListKeys = list(smilesDict.keys())
+
+    last_month_date = last_period_dates.copy().pop()
+    kol = 0
+    for i in smilesListKeys:
+        if datetime.strptime(last_month_date, "%Y-%m-%d") < datetime.strptime(i, "%Y-%m-%d"):
+            kol += 1
+
+    return kol
+
 
 """ Подсчитывание кол-ва одинаковых смайликов """
 async def getData(ID, period, day):
     smilesDict = await database.getSmileInfo(ID, "all")
-
     if period == "month":
-        if len(smilesDict) < 31:
-            raise ValueError
-        else:
-            smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-31:]]
-            smilesList = await compilingList(smilesList)
+
+
+        smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-day_counter(31, smilesDict):]]
+        smilesList = await compilingList(smilesList)
     elif period == "week":
-        if len(smilesDict) < 7:
-            raise ValueError
-        else:
-            smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-7:]]
-            smilesList = await compilingList(smilesList)
+
+        smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-day_counter(7, smilesDict):]]
+        smilesList = await compilingList(smilesList)
     elif period == "day":
         try:
             smilesList = smilesDict[day].split(", ")
