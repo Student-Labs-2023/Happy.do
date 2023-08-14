@@ -275,10 +275,8 @@ async def addUsedGPT(ID: int) -> None:
 
     :param ID: Telegram user ID
     """
-    info = await firestore_client.collection("Users").document(str(ID)).get()
 
-    value = info.to_dict()["used_GPT"]
-    await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value + 1})
+    await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": firestore.Increment(1)})
 
 
 async def getUsedGPT(ID: int) -> int:

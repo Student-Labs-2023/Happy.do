@@ -1,22 +1,21 @@
 import logging
 import os
 from datetime import date, datetime, timedelta
-import emoji
 
 from aiogram.types.message import ContentType
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import Dispatcher, FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from aiogram.utils.exceptions import MessageToDeleteNotFound
+from aiogram.utils.exceptions import MessageToDeleteNotFound, MessageCantBeDeleted
 from aiogram.utils.executor import start_webhook
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputFile, User
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputFile
 from aiogram import Bot, types
 
 from tgbot.utiles.Statistics import statistics, pictureNoData
 from tgbot.utiles import database, chatGPT
 from config import config
-from tgbot.utiles.supportFunctions import converting_dates_to_days
+from tgbot.utiles.supportFunctions import converting_dates_to_days, contains_emojis
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
 storage = MemoryStorage()
@@ -220,7 +219,8 @@ def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
         для визуального отображения выбора в статистике за день.
 
         Также, добавляет кнопки перелистывания даты в виде стрелок. """
-    buttons = [InlineKeyboardButton(emoji + "✅" if emoji in selected_emojis else emoji, callback_data="fake_buttons") for emoji in emoji_list]
+    buttons = [InlineKeyboardButton(emoji + "✅" if emoji in selected_emojis else emoji, callback_data="fake_buttons")
+               for emoji in emoji_list]
     button1 = InlineKeyboardButton("⬅️", callback_data=f"fake_left_arrow_{date_offset}")
     button2 = InlineKeyboardButton("➡️", callback_data=f"fake_right_arrow_{date_offset}")
 
@@ -354,7 +354,7 @@ async def addPersonalSmile(message: types.Message, state: FSMContext):
     elif message.text:
         personal_smile = message.text
 
-    if len(personal_smile) == 1 and bool(emoji.emoji_count(personal_smile)):
+    if len(personal_smile) == 1 and contains_emojis(personal_smile):
         if personal_smile in smile_list:
             await message.answer(f"{personal_smile} - такой смайлик уже есть. Выберите другой.")
         else:
@@ -365,20 +365,25 @@ async def addPersonalSmile(message: types.Message, state: FSMContext):
     elif personal_smile == 'Вернуться':
         await state.finish()
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+    elif len(personal_smile) > 1 and contains_emojis(personal_smile):
+        await message.answer(
+            "Неправильный ввод! \nПохоже, вы использовали специальный смайлик, который может быть доступен только на определенных "
+            "устройствах. \nПовторите попытку или нажмите 'Вернуться'.")
     else:
-        await message.answer("Неправильный ввод! Отправьте смайлик.\n"
-                             "Если вы не хотите отправлять смайл, то нажмите 'Вернуться'")
+        await message.answer("Неправильный ввод! \nВозможно, вы отправили специальный смайлик, который может быть "
+                             "доступен только на определенных устройствах, или вы отправили текст. \n"
+                             "Повторите попытку или нажмите 'Вернуться'.")
 
 
 @dp.message_handler(text=["Удалить"])
 async def deleteSmile(message: types.Message):
     personal_smiles = await database.getPersonalSmiles(message.from_user.id)
     if len(personal_smiles) > 0:
-        await message.answer("Отправьте смайлик, который вы хотите удалить.")
+        await message.answer("Отправьте смайлик, который вы хотите удалить.", reply_markup=show_button(["Вернуться"]))
         await UserState.personal_smile_remove.set()
         # await database.setUserState(message.from_user.id, 'personal_smile_remove')
     else:
-        await message.answer("Вы не добавили ни одного смайлика."
+        await message.answer("Вы не добавили ни одного смайлика. "
                              "Можно удалить только добавленные смайлики.")
 
 
@@ -393,7 +398,7 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
     elif message.text:
         personal_smile = message.text
 
-    if len(personal_smile) == 1 and bool(emoji.emoji_count(personal_smile)):
+    if len(personal_smile) == 1 and contains_emojis(personal_smile):
         if personal_smile in smileys:
             await message.answer(f"{personal_smile} - этот смайлик находится в стандартном меню выбора, "
                                  f"его нельзя удалять. Выберите другой.")
@@ -457,7 +462,8 @@ async def generationPortraitDay(message: types.Message):
                 await message.answer("Вы не выбрали ни одного смайлика за сегодня.",
                                      reply_markup=show_button(buttons_menu))
         else:
-            await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
+            await message.answer(
+                "Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
 
 
 @dp.message_handler(text=["За неделю"])
@@ -477,7 +483,8 @@ async def generationPortraitWeek(message: types.Message):
                 await message.answer("Слишком мало информации. Для получения портрета необходимо "
                                      "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
             else:
-                await message.answer("Портрет генерируется. Дождитесь завершения.", reply_markup=show_button([""]))
+                await message.answer("Портрет генерируется. Дождитесь завершения.",
+                                     reply_markup=types.ReplyKeyboardRemove())
                 smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-7:]))
                 smiles = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
 
@@ -488,8 +495,8 @@ async def generationPortraitWeek(message: types.Message):
                 await message.answer(portrait, reply_markup=show_button(buttons_menu))
                 await database.addUsedGPT(user_id)
         else:
-            await message.answer("Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
-
+            await message.answer(
+                "Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
 
 
 # -----------------------------------------------------------------------------------------------------------------------
@@ -510,6 +517,7 @@ def show_inline_button(emoji_list, selected_emojis=[]):
     buttons = [InlineKeyboardButton(emoji + "✅" if emoji in selected_emojis
                                     else emoji, callback_data=emoji) for emoji in emoji_list]
     return InlineKeyboardMarkup(row_width=5).add(*buttons)
+
 
 def add_checkmark(lst, variable):
     return [elem + "✅" if elem == variable else elem for elem in lst]
@@ -665,6 +673,8 @@ async def delMessage(chatID: int, msgID: int):
     try:
         await bot.delete_message(chatID, msgID)
     except MessageToDeleteNotFound:
+        pass
+    except MessageCantBeDeleted:
         pass
 
 
