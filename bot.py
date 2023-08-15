@@ -529,12 +529,16 @@ def add_checkmark(lst, variable):
 
 @dp.message_handler(text=["Выбрать смайлик"])
 async def show_emoji(message: types.Message):
+    emoji_list = smileys + await database.getPersonalSmiles(message.from_user.id)
     prevSmileMsg = await database.getPrevSmileMsgID(message.from_user.id)
+    smileListToDay = ''
     if prevSmileMsg is not None:
         await delMessage(message.chat.id, prevSmileMsg)
+        smileListToDay = await database.getSmileInfo(message.from_user.id, str(date.today()))
+        for i in smileListToDay:
+            emoji_list = add_checkmark(emoji_list, i)
 
-    emoji_list = smileys + await database.getPersonalSmiles(message.from_user.id)
-    smile_msg = await message.reply('Выберите смайлик:', reply_markup=show_inline_button(emoji_list))
+    smile_msg = await message.reply(f'Выберанные смайлики:\n {"".join(smileListToDay)}', reply_markup=show_inline_button(emoji_list))
 
     await database.updateSmileMsgID(message.from_user.id, smile_msg["message_id"])
 
@@ -549,36 +553,32 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
             await delMessage(callback_query.message.chat.id, prevSmileMsg)
         await set_state(message=callback_query.message, state=state)
     else:
-        async with state.proxy() as data:
-            if "selected_emojis" not in data:
-                data["selected_emojis"] = []
+        # Лист с выбранными смайликами за день
+        selected_emojis = await database.getSmileInfo(user_id, str(date.today()))
+        selected_emoji = callback_query.data
 
-            selected_emojis = data["selected_emojis"]
+        if '✅' in selected_emoji:
+            selected_emoji = selected_emoji.removesuffix('✅')
+        # Проверяем, есть ли выбранный смайлик уже в списке выбранных
+        if selected_emoji not in selected_emojis :
+            # Если смайлика еще нет в списке выбранных, добавляем егb о
+            selected_emojis.append(selected_emoji)
+            await callback_query.answer("Вы выбрали смайлик ✅")
+            await database.addEmojiUsed(callback_query.from_user.id)
+        else:
+            # Если смайлик уже есть в списке выбранных, удаляем его, чтобы пользователь мог снова выбрать
+            selected_emojis.remove(selected_emoji)
+            await callback_query.answer("Смайлик снят ❌")
 
-            selected_emoji = callback_query.data
+        print(selected_emojis)
+        await database.addOrChangeSmile(callback_query.from_user.id, str(date.today()), selected_emojis)
 
-            # Проверяем, есть ли выбранный смайлик уже в списке выбранных
-            if selected_emoji not in selected_emojis:
-                # Если смайлика еще нет в списке выбранных, добавляем его
-                selected_emojis.append(selected_emoji)
-                await callback_query.answer("Вы выбрали смайлик ✅")
-                await database.addEmojiUsed(callback_query.from_user.id)
-            else:
-                # Если смайлик уже есть в списке выбранных, удаляем его, чтобы пользователь мог снова выбрать
-                selected_emojis.remove(selected_emoji)
-                await callback_query.answer("Смайлик снят ❌")
-
-            data["selected_emojis"] = selected_emojis
-
-            print(selected_emojis)
-            await database.addOrChangeSmile(callback_query.from_user.id, str(date.today()), selected_emojis)
-
-            emoji_list = smileys + await database.getPersonalSmiles(user_id)
-            await callback_query.message.edit_text(
-                "Выбранные смайлики:\n" + "".join(
-                    selected_emojis) if selected_emojis else "Выбранных смайликов пока нет",
-                reply_markup=show_inline_button(emoji_list, selected_emojis)
-            )
+        emoji_list = smileys + await database.getPersonalSmiles(user_id)
+        await callback_query.message.edit_text(
+            "Выбранные смайлики:\n" + "".join(
+                selected_emojis) if selected_emojis else "Выбранных смайликов пока нет",
+            reply_markup=show_inline_button(emoji_list, selected_emojis)
+        )
 
 
 async def set_state(message: types.Message, state: FSMContext):
