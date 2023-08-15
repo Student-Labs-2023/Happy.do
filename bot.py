@@ -360,10 +360,12 @@ async def addPersonalSmile(message: types.Message, state: FSMContext):
         else:
             await message.answer(f"Смайл {personal_smile} добавлен ✅")
             await database.addPersonalSmiles(user_id, personal_smile)
-            await state.finish()
+            # await state.finish()
+            await state.set_state(None)
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     elif personal_smile == 'Вернуться':
-        await state.finish()
+        # await state.finish()
+        await state.set_state(None)
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     elif len(personal_smile) > 1 and contains_emojis(personal_smile):
         await message.answer(
@@ -408,10 +410,12 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
         else:
             await message.answer(f"Смайл {personal_smile} удален ✅")
             await database.removePersonalSmile(user_id, personal_smile)
-            await state.finish()
+            # await state.finish()
+            await state.set_state(None)
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     elif personal_smile == 'Вернуться':
-        await state.finish()
+        # await state.finish()
+        await state.set_state(None)
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     else:
         await message.answer("Неправильный ввод! Отправьте смайлик.\n"
@@ -538,7 +542,7 @@ async def show_emoji(message: types.Message):
 @dp.callback_query_handler()
 async def button(callback_query: types.CallbackQuery, state: FSMContext):
     user_id = callback_query.from_user.id
-    limit_end = await database.emojiLimitExpired(callback_query.from_user.id)
+    limit_end = await database.emojiLimitExpired(user_id)
     if limit_end:
         prevSmileMsg = await database.getPrevSmileMsgID(user_id)
         if prevSmileMsg is not None:
