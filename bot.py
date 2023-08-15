@@ -146,31 +146,35 @@ async def statisticUserDay(message: types.Message, state: FSMContext, day=str(da
     pathToPicture = await statistics.analiticData(user_id, "day", day)  # путь к картинке со статой
     emoji_list = smileys + await database.getPersonalSmiles(user_id)
 
-    # await message.answer("Ваша статистика за день")
     if pathToPicture != "absent":
         photo = InputFile(pathToPicture)
         userSmiles = await database.getSmileInfo(user_id, day)
         sent_message = await message.answer_photo(photo=photo,
                                                   reply_markup=show_fake_inline_button(emoji_list, userSmiles))
-        async with state.proxy() as data:
-            if "message_id" in data:
-                try:
-                    await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
-                except Exception as e:
-                    print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
-            data['message_id'] = sent_message.message_id
+
+        message_id = await database.getMessageId(user_id, "stat_day")
+        if message_id is not None:
+            try:
+                await bot.delete_message(chat_id=user_id, message_id=message_id)
+            except Exception as e:
+                print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+        message_id = sent_message.message_id
+        await database.addMessageId(user_id, "stat_day", message_id)
+
     else:
         pathToPicture = pictureNoData.createPictureNoData(user_id, day)
         photo = InputFile(pathToPicture)
         sent_message = await message.answer_photo(photo=photo,
                                                   reply_markup=show_fake_inline_button(emoji_list))
-        async with state.proxy() as data:
-            if "message_id" in data:
-                try:
-                    await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
-                except Exception as e:
-                    print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
-            data['message_id'] = sent_message.message_id
+
+        message_id = await database.getMessageId(user_id, "stat_day")
+        if message_id is not None:
+            try:
+                await bot.delete_message(chat_id=user_id, message_id=message_id)
+            except Exception as e:
+                print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+        message_id = sent_message.message_id
+        await database.addMessageId(user_id, "stat_day", message_id)
 
     os.remove(pathToPicture)  # удаляем файл с картинкой
 
@@ -180,9 +184,19 @@ async def statisticUserWeek(message: types.Message):
     user_id = message.from_user.id  # ID чата
     pathToPicture = await statistics.analiticData(user_id, "week")  # путь к картинке со статой
     if pathToPicture != "absent":
-        await message.answer("Ваша статистика за неделю")
+        # await message.answer("Ваша статистика за неделю")
         photo = InputFile(pathToPicture)
-        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        sent_message = await bot.send_photo(chat_id=message.chat.id, photo=photo)
+
+        message_id = await database.getMessageId(user_id, "stat_week")
+        if message_id is not None:
+            try:
+                await bot.delete_message(chat_id=user_id, message_id=message_id)
+            except Exception as e:
+                print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+        message_id = sent_message.message_id
+        await database.addMessageId(user_id, "stat_week", message_id)
+
         os.remove(pathToPicture)  # удаляем файл с картинкой
     else:
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
@@ -193,9 +207,19 @@ async def statisticUserMonth(message: types.Message):
     user_id = message.from_user.id  # ID чата
     pathToPicture = await statistics.analiticData(user_id, "month")  # путь к картинке со статой
     if pathToPicture != "absent":
-        await message.answer("Ваша статистика за месяц")
+        # await message.answer("Ваша статистика за месяц")
         photo = InputFile(pathToPicture)
-        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        sent_message = await bot.send_photo(chat_id=message.chat.id, photo=photo)
+
+        message_id = await database.getMessageId(user_id, "stat_month")
+        if message_id is not None:
+            try:
+                await bot.delete_message(chat_id=user_id, message_id=message_id)
+            except Exception as e:
+                print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+        message_id = sent_message.message_id
+        await database.addMessageId(user_id, "stat_month", message_id)
+
         os.remove(pathToPicture)  # удаляем файл с картинкой
     else:
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
@@ -206,9 +230,19 @@ async def statisticUserAll(message: types.Message):
     user_id = message.from_user.id  # ID чата
     pathToPicture = await statistics.analiticData(user_id, "all")  # путь к картинке со статой
     if pathToPicture != "absent":
-        await message.answer("Ваша статистика за все время")
+        # await message.answer("Ваша статистика за все время")
         photo = InputFile(pathToPicture)
-        await bot.send_photo(chat_id=message.chat.id, photo=photo)
+        sent_message = await bot.send_photo(chat_id=message.chat.id, photo=photo)
+
+        message_id = await database.getMessageId(user_id, "stat_alltime")
+        if message_id is not None:
+            try:
+                await bot.delete_message(chat_id=user_id, message_id=message_id)
+            except Exception as e:
+                print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+        message_id = sent_message.message_id
+        await database.addMessageId(user_id, "stat_alltime", message_id)
+
         os.remove(pathToPicture)  # удаляем файл с картинкой
     else:
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
@@ -269,9 +303,9 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
     """
     Функция для изменения сообщения статистики.
     """
-    # получаем из стейта message_id
-    async with state.proxy() as data:
-        msg_id = data['message_id']
+    # получаем из базы message_id
+
+    msg_id = await database.getMessageId(user_id, "stat_day")
 
     smile_list = smileys + await database.getPersonalSmiles(user_id)
 
@@ -538,7 +572,7 @@ async def show_emoji(message: types.Message):
         for i in smileListToDay:
             emoji_list = add_checkmark(emoji_list, i)
 
-    smile_msg = await message.reply(f'Выберанные смайлики:\n {"".join(smileListToDay)}', reply_markup=show_inline_button(emoji_list))
+    smile_msg = await message.reply(f'Выбранные смайлики:\n {"".join(smileListToDay)}', reply_markup=show_inline_button(emoji_list))
 
     await database.updateSmileMsgID(message.from_user.id, smile_msg["message_id"])
 

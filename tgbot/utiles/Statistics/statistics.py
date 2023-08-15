@@ -104,5 +104,8 @@ async def analiticData(ID, period, day=str(date.today())):
         maxKeys.append('Другие')
 
     """ Вызов создания круговой диаграммы """
-    return diagrams.createCircularChart(ID, maxKeys, sizes, day if period == 'day' else '')
+    return diagrams.createCircularChart(ID, maxKeys, sizes,
+                                        day if period == 'day' else (
+                                            "за неделю." if period == 'week' else (
+                                                'за месяц.' if period == 'month' else "за все время.")))
 

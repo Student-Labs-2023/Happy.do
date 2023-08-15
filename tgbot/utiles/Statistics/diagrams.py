@@ -29,7 +29,8 @@ def createCircularChart(ID, labels, sizes, day):
     fig.savefig(os.getcwd() + fr'\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg', transparent=False, dpi=200,
                 bbox_inches="tight")  # сохранение картинки
 
-    plt.clf()
+    # plt.clf()
+    plt.close(fig)
 
     return fr"{os.getcwd()}\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg"
 
@@ -57,7 +58,9 @@ def createBarChart(ID, labels, days, day):
     fig.savefig(os.getcwd() + r'\tgbot\utiles\Statistics\Picture\Bar.png', transparent=False, dpi=80,
                 bbox_inches="tight")  # сохранение картинки
 
-    plt.clf()
+    # plt.clf()
+    plt.close(fig)
+
 
     return rf"{os.getcwd()}\tgbot\utiles\Statistics\Picture\Bar{str(ID)}.jpg"
 

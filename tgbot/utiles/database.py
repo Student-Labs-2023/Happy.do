@@ -31,6 +31,8 @@ async def createUser(ID: int, name: str) -> None:
          "date_registration_premium": "undefined",
          "premium_status_end": "undefined", "prev_invoice_msg_id": None, "prev_smile_msg_id": None, "state": None})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
+    await firestore_client.collection("Users").document(str(ID)).collection("states").document("message_id").set({
+        "stat_day": None, "stat_week": None, "stat_month": None, "stat_alltime": None})
 
 
 async def addEmojiUsed(ID: int) -> None:
@@ -136,27 +138,6 @@ async def addOrChangeSmile(ID: int, day: str, smilesList: []) -> None:
         await addOrRemoveValuesSmileInfo(smilesList, pastSmilesList)
         await firestore_client.collection("Users").document(str(ID)).collection("smile").document(
             "date").update({day: firestore.DELETE_FIELD})
-
-    # Переделать админку под новую возможность отправлять несколько смайликов за раз
-    #     await addOrRemoveValuesSmileInfo(smile[0], False)
-
-    # if '✅' in smile:
-    #     await firestore_client.collection("Users").document(str(ID)).collection("smile").document(str(date.today())).update(
-    #         {"smile": firestore.DELETE_FIELD})
-    #     await addOrRemoveValuesSmileInfo(smile[0], False)
-    # else:
-    #     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").update(
-    #         {day: smile})
-
-    # doc_exist = await firestore_client.collection("Smile info").document(str(date.today())).get()
-    # if doc_exist.exists:
-    #     smile_exist_today = await checkSmileExistToday(smiles)
-    #     if smile_exist_today:
-    #         await addOrRemoveValuesSmileInfo(smiles, True)
-    #     else:
-    #         await firestore_client.collection("Smile info").document(str(date.today())).update({smiles: '1'})
-    # else:
-    #     await firestore_client.collection("Smile info").document(str(date.today())).set({smiles: '1'})
 
 
 async def checkSmileExistToday(smile) -> bool:
@@ -532,3 +513,37 @@ async def setUserState(ID: int, state: str):
     :return:
     """
     await firestore_client.collection("Users").document(str(ID)).update({"state": state})
+
+
+async def getMessageId(ID: int, message: str) -> int:
+    """
+    Функция getMessageId используется для получения id сообщения.
+
+    :param ID: Telegram user ID..
+    :param message: Наименование сообщения.
+
+    :return: Id сообщения.
+    """
+    info = await firestore_client.collection("Users").document(str(ID)).collection("states").document("message_id").get()
+    if message in info.to_dict():
+        info = info.to_dict()[message]
+    else:
+        await firestore_client.collection("Users").document(str(ID)).collection("states").document("message_id").update(
+            {message: None})
+        info = None
+
+    return info
+
+
+async def addMessageId(ID: int, message: str, message_id: int) -> None:
+    """
+    Функция addMessageId используется для добавления id сообщения в БД.
+
+    :param ID: Telegram user ID..
+    :param message: Наименование сообщения.
+    :param message_id: Id сообщения.
+    """
+
+    info = await firestore_client.collection("Users").document(str(ID)).collection("states").document(
+        "message_id").update({message: message_id})
+
