@@ -37,7 +37,7 @@ class UserState(StatesGroup):
 
 async def on_startup(dispatcher):
     await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
-    # await setUserStateFromDB()
+    await setUserStateFromDB()
 
 
 async def on_shutdown(dispatcher):
@@ -88,10 +88,14 @@ async def send_invoice(chat_id, time, price):
 
 
 @dp.message_handler(text=["Премиум"])
-async def premium(message: types.Message):
-    if await database.checkPremiumUser(message.from_user.id):
+async def premium(message: types.Message, state: FSMContext):
+    is_premium = await database.checkPremiumUser(message.from_user.id)
+    premium_end = await database.checkPremiumIsEnd(message.from_user.id)
+    if is_premium and not premium_end:
         await message.reply(await database.infoPremiumUser(message.from_user.id),
                             reply_markup=show_button(["Вернуться"]))
+    elif is_premium and premium_end:
+        await premiumIsEnd(user_id=message.from_user.id, state=state)
     else:
         await message.reply('Выбери на какой срок подключить премиум', reply_markup=show_button(premium_list_default))
 
@@ -112,7 +116,7 @@ async def buy(message: types.Message):
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-    await message.answer(f'Привет, {message.from_user.first_name}! Happy.do – это бот, который помогает пользователям '
+    await message.answer(f'Привет, {message.from_user.first_name}!\nHappy.do – это бот, который помогает пользователям '
                          f'отслеживать свое ежедневное состояние и деятельность с помощью смайликов. Это уникальный '
                          f'инструмент рефлексии, который помогает улучшить осознанность и поддерживать эмоциональное '
                          f'здоровье.')
@@ -135,83 +139,103 @@ async def statisticUserBack(message: types.Message):
 
 
 @dp.message_handler(text=["Статистика"])
-async def statisticUser(message: types.Message):
+async def statisticUser(message: types.Message, state: FSMContext):
     user_id = message.from_user.id  # ID чата
-    await message.answer('За какой период ты хочешь получить статистику?', reply_markup=show_button(buttons_stat))
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
+    else:
+        await message.answer('За какой период ты хочешь получить статистику?', reply_markup=show_button(buttons_stat))
 
 
 @dp.message_handler(text=["День"])
 async def statisticUserDay(message: types.Message, state: FSMContext, day=str(date.today())):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = await statistics.analiticData(user_id, "day", day)  # путь к картинке со статой
-    emoji_list = smileys + await database.getPersonalSmiles(user_id)
-
-    # await message.answer("Ваша статистика за день")
-    if pathToPicture != "absent":
-        photo = InputFile(pathToPicture)
-        userSmiles = await database.getSmileInfo(user_id, day)
-        sent_message = await message.answer_photo(photo=photo,
-                                                  reply_markup=show_fake_inline_button(emoji_list, userSmiles))
-        async with state.proxy() as data:
-            if "message_id" in data:
-                try:
-                    await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
-                except Exception as e:
-                    print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
-            data['message_id'] = sent_message.message_id
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
     else:
-        pathToPicture = pictureNoData.createPictureNoData(user_id, day)
-        photo = InputFile(pathToPicture)
-        sent_message = await message.answer_photo(photo=photo,
-                                                  reply_markup=show_fake_inline_button(emoji_list))
-        async with state.proxy() as data:
-            if "message_id" in data:
-                try:
-                    await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
-                except Exception as e:
-                    print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
-            data['message_id'] = sent_message.message_id
+        pathToPicture = await statistics.analiticData(user_id, "day", day)  # путь к картинке со статой
+        emoji_list = smileys + await database.getPersonalSmiles(user_id)
 
-    os.remove(pathToPicture)  # удаляем файл с картинкой
+        # await message.answer("Ваша статистика за день")
+        if pathToPicture != "absent":
+            photo = InputFile(pathToPicture)
+            userSmiles = await database.getSmileInfo(user_id, day)
+            sent_message = await message.answer_photo(photo=photo,
+                                                      reply_markup=show_fake_inline_button(emoji_list, userSmiles))
+            async with state.proxy() as data:
+                if "message_id" in data:
+                    try:
+                        await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
+                    except Exception as e:
+                        print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
+                data['message_id'] = sent_message.message_id
+        else:
+            pathToPicture = pictureNoData.createPictureNoData(user_id, day)
+            photo = InputFile(pathToPicture)
+            sent_message = await message.answer_photo(photo=photo,
+                                                      reply_markup=show_fake_inline_button(emoji_list))
+            async with state.proxy() as data:
+                if "message_id" in data:
+                    try:
+                        await bot.delete_message(chat_id=user_id, message_id=data["message_id"])
+                    except Exception as e:
+                        print(f"Не удалось удалить сообщение с ID {data['message_id']}: {e}")
+                data['message_id'] = sent_message.message_id
+
+        os.remove(pathToPicture)  # удаляем файл с картинкой
 
 
 @dp.message_handler(text=["Неделя"])
-async def statisticUserWeek(message: types.Message):
+async def statisticUserWeek(message: types.Message, state: FSMContext):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = await statistics.analiticData(user_id, "week")  # путь к картинке со статой
-    if pathToPicture != "absent":
-        await message.answer("Ваша статистика за неделю")
-        photo = InputFile(pathToPicture)
-        await bot.send_photo(chat_id=message.chat.id, photo=photo)
-        os.remove(pathToPicture)  # удаляем файл с картинкой
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
     else:
-        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+        pathToPicture = await statistics.analiticData(user_id, "week")  # путь к картинке со статой
+        if pathToPicture != "absent":
+            await message.answer("Ваша статистика за неделю")
+            photo = InputFile(pathToPicture)
+            await bot.send_photo(chat_id=message.chat.id, photo=photo)
+            os.remove(pathToPicture)  # удаляем файл с картинкой
+        else:
+            await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
 
 
 @dp.message_handler(text=["Месяц"])
-async def statisticUserMonth(message: types.Message):
+async def statisticUserMonth(message: types.Message, state: FSMContext):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = await statistics.analiticData(user_id, "month")  # путь к картинке со статой
-    if pathToPicture != "absent":
-        await message.answer("Ваша статистика за месяц")
-        photo = InputFile(pathToPicture)
-        await bot.send_photo(chat_id=message.chat.id, photo=photo)
-        os.remove(pathToPicture)  # удаляем файл с картинкой
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
     else:
-        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+        pathToPicture = await statistics.analiticData(user_id, "month")  # путь к картинке со статой
+        if pathToPicture != "absent":
+            await message.answer("Ваша статистика за месяц")
+            photo = InputFile(pathToPicture)
+            await bot.send_photo(chat_id=message.chat.id, photo=photo)
+            os.remove(pathToPicture)  # удаляем файл с картинкой
+        else:
+            await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
 
 
 @dp.message_handler(text=["Все время"])
-async def statisticUserAll(message: types.Message):
+async def statisticUserAll(message: types.Message, state: FSMContext):
     user_id = message.from_user.id  # ID чата
-    pathToPicture = await statistics.analiticData(user_id, "all")  # путь к картинке со статой
-    if pathToPicture != "absent":
-        await message.answer("Ваша статистика за все время")
-        photo = InputFile(pathToPicture)
-        await bot.send_photo(chat_id=message.chat.id, photo=photo)
-        os.remove(pathToPicture)  # удаляем файл с картинкой
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
     else:
-        await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
+        pathToPicture = await statistics.analiticData(user_id, "all")  # путь к картинке со статой
+        if pathToPicture != "absent":
+            await message.answer("Ваша статистика за все время")
+            photo = InputFile(pathToPicture)
+            await bot.send_photo(chat_id=message.chat.id, photo=photo)
+            os.remove(pathToPicture)  # удаляем файл с картинкой
+        else:
+            await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
 
 
 def show_fake_inline_button(emoji_list, selected_emojis=[], date_offset=0):
@@ -331,16 +355,21 @@ async def addSmileToMenu(message: types.Message):
 
 
 @dp.message_handler(text=["Добавить"])
-async def addSmile(message: types.Message):
-    personal_smiles = await database.getPersonalSmiles(message.from_user.id)
-    if len(personal_smiles) < 10:
-        await message.answer("Отправьте смайлик, который вы хотите добавить. Премиум смайлики добавлять нельзя.",
-                             reply_markup=show_button(["Вернуться"]))
-        await UserState.personal_smile_add.set()
-        # await database.setUserState(message.from_user.id, 'personal_smile_add')
+async def addSmile(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
     else:
-        await message.answer("Вы уже добавили максимальное количество смайликов - 10. "
-                             "Вы можете освободить место, удалив один из добавленных смайликов.")
+        personal_smiles = await database.getPersonalSmiles(message.from_user.id)
+        if len(personal_smiles) < 10:
+            await message.answer("Отправьте смайлик, который вы хотите добавить. Премиум смайлики добавлять нельзя.",
+                                 reply_markup=show_button(["Вернуться"]))
+            await UserState.personal_smile_add.set()
+            await database.setUserState(message.from_user.id, 'personal_smile_add')
+        else:
+            await message.answer("Вы уже добавили максимальное количество смайликов - 10. "
+                                 "Вы можете освободить место, удалив один из добавленных смайликов.")
 
 
 @dp.message_handler(state=UserState.personal_smile_add)
@@ -360,33 +389,38 @@ async def addPersonalSmile(message: types.Message, state: FSMContext):
         else:
             await message.answer(f"Смайл {personal_smile} добавлен ✅")
             await database.addPersonalSmiles(user_id, personal_smile)
-            # await state.finish()
             await state.set_state(None)
+            await database.setUserState(user_id, None)
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     elif personal_smile == 'Вернуться':
-        # await state.finish()
         await state.set_state(None)
+        await database.setUserState(user_id, None)
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     elif len(personal_smile) > 1 and contains_emojis(personal_smile):
         await message.answer(
             "Неправильный ввод! \nПохоже, вы использовали специальный смайлик, который может быть доступен только на определенных "
-            "устройствах. \nПовторите попытку или нажмите 'Вернуться'.")
+            "устройствах. \nПовторите попытку или нажмите 'Вернуться'.", reply_markup=show_button(["Вернуться"]))
     else:
         await message.answer("Неправильный ввод! \nВозможно, вы отправили специальный смайлик, который может быть "
                              "доступен только на определенных устройствах, или вы отправили текст. \n"
-                             "Повторите попытку или нажмите 'Вернуться'.")
+                             "Повторите попытку или нажмите 'Вернуться'.", reply_markup=show_button(["Вернуться"]))
 
 
 @dp.message_handler(text=["Удалить"])
-async def deleteSmile(message: types.Message):
-    personal_smiles = await database.getPersonalSmiles(message.from_user.id)
-    if len(personal_smiles) > 0:
-        await message.answer("Отправьте смайлик, который вы хотите удалить.", reply_markup=show_button(["Вернуться"]))
-        await UserState.personal_smile_remove.set()
-        # await database.setUserState(message.from_user.id, 'personal_smile_remove')
+async def deleteSmile(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
     else:
-        await message.answer("Вы не добавили ни одного смайлика. "
-                             "Можно удалить только добавленные смайлики.")
+        personal_smiles = await database.getPersonalSmiles(message.from_user.id)
+        if len(personal_smiles) > 0:
+            await message.answer("Отправьте смайлик, который вы хотите удалить.", reply_markup=show_button(["Вернуться"]))
+            await UserState.personal_smile_remove.set()
+            await database.setUserState(message.from_user.id, 'personal_smile_remove')
+        else:
+            await message.answer("Вы не добавили ни одного смайлика. "
+                                 "Можно удалить только добавленные смайлики.")
 
 
 @dp.message_handler(state=UserState.personal_smile_remove)
@@ -403,23 +437,26 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
     if len(personal_smile) == 1 and contains_emojis(personal_smile):
         if personal_smile in smileys:
             await message.answer(f"{personal_smile} - этот смайлик находится в стандартном меню выбора, "
-                                 f"его нельзя удалять. Выберите другой.")
+                                 f"его нельзя удалять. Выберите другой.", reply_markup=show_button(["Вернуться"]))
         elif not personal_smile in smile_list:
             await message.answer(
-                f"{personal_smile} - этого смайлика нет в добавленных вами смайликах. Выберите другой.")
+                f"{personal_smile} - этого смайлика нет в добавленных вами смайликах. Выберите другой.",
+                reply_markup=show_button(["Вернуться"]))
         else:
             await message.answer(f"Смайл {personal_smile} удален ✅")
             await database.removePersonalSmile(user_id, personal_smile)
-            # await state.finish()
             await state.set_state(None)
+            await database.setUserState(user_id, None)
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     elif personal_smile == 'Вернуться':
-        # await state.finish()
         await state.set_state(None)
+        await database.setUserState(user_id, None)
+        await database.setUserState(user_id, None)
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     else:
         await message.answer("Неправильный ввод! Отправьте смайлик.\n"
-                             "Если вы не хотите отправлять смайл, то выберите: 'Вернуться'")
+                             "Если вы не хотите отправлять смайл, то выберите: 'Вернуться'",
+                             reply_markup=show_button(["Вернуться"]))
 
 
 # -----------------------------------------------------------------------------------------------------------------------
@@ -430,11 +467,15 @@ async def deletePersonalSmile(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(text=["Сгенерировать портрет"])
-async def generationPortrait(message: types.Message):
+async def generationPortrait(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
     is_premium = await database.checkPremiumUser(message.from_user.id)
-    if is_premium:
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if is_premium and not premium_end:
         await message.answer("Выбери за какой период ты хочешь сгенерировать психологический портрет.",
                              reply_markup=show_button(["За день", "За неделю", "Вернуться"]))
+    elif is_premium and premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
     else:
         await message.answer(
             "Для использования генерации психологического портрета с помощью chatGPT необходимо приобрести подписку\n"
@@ -442,14 +483,15 @@ async def generationPortrait(message: types.Message):
 
 
 @dp.message_handler(text=["За день"])
-async def generationPortraitDay(message: types.Message):
+async def generationPortraitDay(message: types.Message, state: FSMContext):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT за день. Если пользователь не вводил смайлики
     сегодня или вызывал команду генерации портрета более 2 раз, то он не генерируется.
     """
     user_id = message.from_user.id
     is_premium = await database.checkPremiumUser(user_id)
-    if is_premium:
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if is_premium and not premium_end:
         if await database.getUsedGPT(user_id) < 2:
             try:
                 smiles = await database.getSmileInfo(user_id, str(date.today()))
@@ -468,17 +510,20 @@ async def generationPortraitDay(message: types.Message):
         else:
             await message.answer(
                 "Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
+    elif is_premium and premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
 
 
 @dp.message_handler(text=["За неделю"])
-async def generationPortraitWeek(message: types.Message):
+async def generationPortraitWeek(message: types.Message, state: FSMContext):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT за неделю. Если пользователь не вводил смайлики
     хотя бы 7 дней или вызывал эту команду более 2 раз, то портрет не генерируется.
     """
     user_id = message.from_user.id
     is_premium = await database.checkPremiumUser(user_id)
-    if is_premium:
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if is_premium and not premium_end:
         if await database.getUsedGPT(user_id) < 2:
 
             smilesDict = await database.getSmileInfo(user_id, "all")
@@ -501,6 +546,8 @@ async def generationPortraitWeek(message: types.Message):
         else:
             await message.answer(
                 "Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
+    elif is_premium and premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
 
 
 # -----------------------------------------------------------------------------------------------------------------------
@@ -538,7 +585,8 @@ async def show_emoji(message: types.Message):
         for i in smileListToDay:
             emoji_list = add_checkmark(emoji_list, i)
 
-    smile_msg = await message.reply(f'Выберанные смайлики:\n {"".join(smileListToDay)}', reply_markup=show_inline_button(emoji_list))
+    smile_msg = await message.reply(f'Выбранные смайлики:\n {"".join(smileListToDay)}',
+                                    reply_markup=show_inline_button(emoji_list))
 
     await database.updateSmileMsgID(message.from_user.id, smile_msg["message_id"])
 
@@ -547,11 +595,16 @@ async def show_emoji(message: types.Message):
 async def button(callback_query: types.CallbackQuery, state: FSMContext):
     user_id = callback_query.from_user.id
     limit_end = await database.emojiLimitExpired(user_id)
-    if limit_end and not database.checkPremiumUser(user_id):
+    is_premium = await database.checkPremiumUser(user_id)
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if is_premium and premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
+    elif limit_end and not is_premium:
         prevSmileMsg = await database.getPrevSmileMsgID(user_id)
         if prevSmileMsg is not None:
             await delMessage(callback_query.message.chat.id, prevSmileMsg)
-        await set_state(message=callback_query.message, state=state)
+        await set_state(user_id, state=state)
+
     else:
         # Лист с выбранными смайликами за день
         selected_emojis = await database.getSmileInfo(user_id, str(date.today()))
@@ -560,8 +613,8 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
         if '✅' in selected_emoji:
             selected_emoji = selected_emoji.removesuffix('✅')
         # Проверяем, есть ли выбранный смайлик уже в списке выбранных
-        if selected_emoji not in selected_emojis :
-            # Если смайлика еще нет в списке выбранных, добавляем егb о
+        if selected_emoji not in selected_emojis:
+            # Если смайлика еще нет в списке выбранных, добавляем его
             selected_emojis.append(selected_emoji)
             await callback_query.answer("Вы выбрали смайлик ✅")
             await database.addEmojiUsed(callback_query.from_user.id)
@@ -581,58 +634,58 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
         )
 
 
-async def set_state(message: types.Message, state: FSMContext):
+async def set_state(user_id, state: FSMContext):
     await state.set_state(UserState.limit_is_over.state)
-    # await database.setUserState(message.from_user.id, 'limit_is_over')
-    await message.answer(
-        'Вы использовали свой лимит в 100 смайликов, чтобы продолжить вам необходимо'
-        'приобрести premium подписку, выберете подписки', reply_markup=show_button(premium_list_state))
+    await database.setUserState(user_id, 'limit_is_over')
+    await bot.send_message(user_id, 'Вы использовали свой лимит в 100 смайликов, чтобы продолжить вам необходимо '
+                                    'приобрести premium подписку, выберете подписки',
+                           reply_markup=show_button(premium_list_state))
 
 
 @dp.message_handler(commands=['admin'])
 async def admin(message: types.Message):
-    if message.from_user.id == config.ADMIN_ID:
+    if message.from_user.id in config.ADMIN_ID:
         await message.answer('Выполнен вход в админ-панель', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Кол-во новых пользователей за неделю"])
 async def stat_new_week(message: types.Message):
-    if message.from_user.id == config.ADMIN_ID:
+    if message.from_user.id in config.ADMIN_ID:
         await message.answer(f'Кол-во новых пользователей за неделю: {await database.getCountNewUsers()}',
                              reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Общее кол-во пользователей"])
 async def stat_all(message: types.Message):
-    if message.from_user.id == config.ADMIN_ID:
+    if message.from_user.id in config.ADMIN_ID:
         await message.answer(f'Общее кол-во пользователей: {await database.getCountAllUsers()}',
                              reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Статистика за день"])
 async def stat_day(message: types.Message):
-    if message.from_user.id == config.ADMIN_ID:
+    if message.from_user.id in config.ADMIN_ID:
         info = await database.getStatAdmin(1)
         await message.answer(f'Статистика за день: \n{" ".join(info)}', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Статистика за неделю"])
 async def stat_week(message: types.Message):
-    if message.from_user.id == config.ADMIN_ID:
+    if message.from_user.id in config.ADMIN_ID:
         info = await database.getStatAdmin(7)
         await message.answer(f'Статистика за неделю: \n{" ".join(info)}', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Статистика за месяц"])
 async def stat_month(message: types.Message):
-    if message.from_user.id == config.ADMIN_ID:
+    if message.from_user.id in config.ADMIN_ID:
         info = await database.getStatAdmin(30)
         await message.answer(f'Статистика за месяц: \n{" ".join(info)}', reply_markup=show_button(admin_menu))
 
 
 @dp.message_handler(text=["Выйти"])
 async def admin_exit(message: types.Message):
-    if message.from_user.id == config.ADMIN_ID:
+    if message.from_user.id in config.ADMIN_ID:
         await message.reply('Выход из админ-панели', reply_markup=show_button(buttons_menu))
 
 
@@ -649,7 +702,8 @@ async def successful_payment(message: types.Message, state: FSMContext):
     if prevInvoiceMsg is not None:
         await delMessage(message.chat.id, prevInvoiceMsg)
 
-    await state.finish()
+    await state.set_state(None)
+    await database.setUserState(message.from_user.id, None)
     payment_info = message.successful_payment.to_python()
     for k, v in payment_info.items():
         print(f"{k}={v}")
@@ -673,13 +727,22 @@ async def successful_payment(message: types.Message, state: FSMContext):
     await message.answer(await database.infoPremiumUser(message.from_user.id))
 
 
-async def delMessage(chatID: int, msgID: int):
+async def delMessage(chat_id: int, msgID: int):
     try:
-        await bot.delete_message(chatID, msgID)
+        await bot.delete_message(chat_id, msgID)
     except MessageToDeleteNotFound:
         pass
     except MessageCantBeDeleted:
         pass
+
+
+async def premiumIsEnd(user_id: int, state: FSMContext):
+    await state.set_state(UserState.limit_is_over.state)
+    await database.setUserState(user_id, 'limit_is_over')
+    await database.removePremiumStatus(user_id)
+    await bot.send_message(chat_id=user_id,
+                           text="Срок вашей премиум подписки подошёл к концу, для дальнейшего использование бота "
+                                "необходимо приобрести подписку", reply_markup=show_button(premium_list_state))
 
 
 async def setUserStateFromDB():
@@ -690,12 +753,18 @@ async def setUserStateFromDB():
             if value == "limit_is_over":
                 state_to_set = UserState.limit_is_over
                 await state_obj.set_state(state_to_set)
+                print(f'Установлено limit_is_over для {key}')
             elif value == "personal_smile_add":
                 state_to_set = UserState.personal_smile_add
                 await state_obj.set_state(state_to_set)
+                print(f'Установлено personal_smile_add для {key}')
             elif value == "personal_smile_remove":
                 state_to_set = UserState.personal_smile_remove
                 await state_obj.set_state(state_to_set)
+                print(f'Установлено personal_smile_remove для {key}')
+            elif value == "None":
+                state_to_set = None
+                await state_obj.set_state(None)
 
 
 if __name__ == '__main__':

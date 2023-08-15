@@ -5,6 +5,7 @@ import yaml
 
 from config import config
 
+
 class Keyboard(BaseModel):
     menu: List[str]
     admin: List[str]
