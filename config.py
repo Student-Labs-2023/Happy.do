@@ -1,6 +1,8 @@
 from pydantic_settings import BaseSettings
 from pydantic import SecretStr
 
+from typing import List
+
 
 class Settings(BaseSettings):
     BOT_TOKEN: SecretStr
@@ -16,7 +18,7 @@ class Settings(BaseSettings):
     PATH_FIREBASE_KEY: str
     PATH_CONTENT_FILE: str
 
-    ADMIN_ID: int
+    ADMIN_ID: List[int]
 
     class Config:
         env_file = '.env'

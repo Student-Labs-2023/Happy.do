@@ -324,8 +324,11 @@ async def getSmileInfo(ID: int, day: str):
         smiles = dict(sorted(info.to_dict().items()))
         return smiles
     else:
-        _ = info.to_dict()[day]
-        return list(_) if ", " not in _ else _.split(", ")  # Возвращает список смайликов за день
+        try:
+            _ = info.to_dict()[day]
+            return list(_) if ", " not in _ else _.split(", ")  # Возвращает список смайликов за день
+        except KeyError:
+            return []
 
 
 async def getCountAllUsers() -> int:
@@ -422,7 +425,7 @@ async def getStatAdmin(days_range: int) -> list:
 
 async def premiumStatus(ID: int, period: str) -> None:
     """
-    Функция premiumStatus используется для изменения статуса пользователя после покупки премиума в БД.
+    Функция premiumStatus используется для изменения статуса пользователя после покупки подписки.
 
     :param period: Дата окончания подписки
     :param ID: Telegram user ID
@@ -431,6 +434,16 @@ async def premiumStatus(ID: int, period: str) -> None:
     await firestore_client.collection("Users").document(str(ID)).update({"status": "premium",
                                                                          "date_registration_premium": str(date.today()),
                                                                          "premium_status_end": period})
+
+
+async def removePremiumStatus(ID: int) -> None:
+    """
+    Функция removePremiumStatus используется для изменения статуса пользователя после окончания срока подписки.
+
+    :param ID: Telegram user ID
+    """
+
+    await firestore_client.collection("Users").document(str(ID)).update({"status": "default"})
 
 
 async def checkPremiumUser(ID: int) -> bool:
@@ -458,6 +471,25 @@ async def infoPremiumUser(ID: int) -> str:
     info = await firestore_client.collection("Users").document(str(ID)).get()
     Date = info.to_dict()["premium_status_end"]
     return f"У вас активен премиум статус до {Date}"
+
+
+async def checkPremiumIsEnd(ID: int) -> bool:
+    """
+    Функция checkPremiumIsEnd используется для проверки, закончился ли срок подписки у юзера.
+
+    :param ID: Telegram user ID
+    """
+
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+    premium_end_date = info.to_dict()["premium_status_end"]
+    if premium_end_date == 'undefined':
+        return False
+    elif premium_end_date < str(date.today()):
+        print(f"{premium_end_date} > {date.today()}")
+        return True
+    else:
+        print(f"{premium_end_date}  {date.today()}")
+        return False
 
 
 async def updateInvoiceMsgID(ID: int, msg_id: int) -> None:
@@ -523,7 +555,7 @@ async def getUsersState() -> dict | None:
     return StateDict
 
 
-async def setUserState(ID: int, state: str):
+async def setUserState(ID: int, state: str | None):
     """
     Функция setUserState используется для обновления поля 'state'.
 
@@ -531,4 +563,5 @@ async def setUserState(ID: int, state: str):
     :param state: Состояние пользователя
     :return:
     """
+    print(ID)
     await firestore_client.collection("Users").document(str(ID)).update({"state": state})
