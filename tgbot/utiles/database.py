@@ -434,6 +434,12 @@ async def premiumStatus(ID: int, period: str) -> None:
 
 
 async def checkPremiumUser(ID: int) -> bool:
+    """
+    Функция checkPremiumUser используется для проверки, есть ли у юзера премиум, возвращает True, если да, иначе False.
+
+    :param ID: Telegram user ID
+    """
+
     info = await firestore_client.collection("Users").document(str(ID)).get()
     info = info.to_dict()["status"]
     if info == "premium":
@@ -443,6 +449,12 @@ async def checkPremiumUser(ID: int) -> bool:
 
 
 async def infoPremiumUser(ID: int) -> str:
+    """
+    Функция infoPremiumUser используется для получения информации до какого числа активен премиум статус.
+
+    :param ID: Telegram user ID
+    """
+
     info = await firestore_client.collection("Users").document(str(ID)).get()
     Date = info.to_dict()["premium_status_end"]
     return f"У вас активен премиум статус до {Date}"

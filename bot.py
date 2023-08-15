@@ -547,7 +547,7 @@ async def show_emoji(message: types.Message):
 async def button(callback_query: types.CallbackQuery, state: FSMContext):
     user_id = callback_query.from_user.id
     limit_end = await database.emojiLimitExpired(user_id)
-    if limit_end:
+    if limit_end and not database.checkPremiumUser(user_id):
         prevSmileMsg = await database.getPrevSmileMsgID(user_id)
         if prevSmileMsg is not None:
             await delMessage(callback_query.message.chat.id, prevSmileMsg)
