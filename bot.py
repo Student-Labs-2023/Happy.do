@@ -60,6 +60,7 @@ admin_menu = ["Кол-во новых пользователей за недел
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
 buttons_addSmileToMenu = ["Добавить", "Удалить", "Вернуться"]
 
+
 premium_list_default = ["1 месяц", "6 месяцев", "1 год", "Вернуться"]
 premium_list_state = ["1 месяц", "6 месяцев", "1 год"]
 
@@ -383,7 +384,7 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
 
 @dp.message_handler(text=["Добавить смайлик"])
 async def addSmileToMenu(message: types.Message):
-    await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
+    sent_message = await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
 
 
 @dp.message_handler(text=["Добавить"])
@@ -447,7 +448,12 @@ async def deleteSmile(message: types.Message, state: FSMContext):
     else:
         personal_smiles = await database.getPersonalSmiles(message.from_user.id)
         if len(personal_smiles) > 0:
-            await message.answer("Отправьте смайлик, который вы хотите удалить.", reply_markup=show_button(["Вернуться"]))
+            sent_message = await message.answer("Отправьте смайлик, который вы хотите удалить.",
+                                                reply_markup=show_inline_button(personal_smiles))
+            await message.answer("Если вы не хотите удалять смайлик, то можете вернуться обратно в меню.",
+                                 reply_markup=show_button(["Вернуться"]))
+            message_id = sent_message.message_id
+            await database.addMessageId(user_id, "smile_remove", message_id)
             await UserState.personal_smile_remove.set()
             await database.setUserState(message.from_user.id, 'personal_smile_remove')
         else:
@@ -455,40 +461,33 @@ async def deleteSmile(message: types.Message, state: FSMContext):
                                  "Можно удалить только добавленные смайлики.")
 
 
-@dp.message_handler(state=UserState.personal_smile_remove)
-async def deletePersonalSmile(message: types.Message, state: FSMContext):
-    personal_smile = ""
+@dp.callback_query_handler(state=UserState.personal_smile_remove)
+async def deletePersonalSmile(callback_query: types.CallbackQuery, state: FSMContext):
+    personal_smile = callback_query.data
+    user_id = callback_query.from_user.id
+
+    await callback_query.answer(f"Смайл {personal_smile} удален ✅")
+    message_id = await database.getMessageId(user_id, "smile_remove")
+
+    if message_id is not None:
+        try:
+            await bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception as e:
+            print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+
+    await database.removePersonalSmile(user_id, personal_smile)
+    await state.set_state(None)
+    await database.setUserState(user_id, None)
+    await callback_query.message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
+
+
+@dp.message_handler(text=["Вернуться"], state=UserState.personal_smile_remove)
+async def backToMenuFromDeleteSmile(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
-    smile_list = await database.getPersonalSmiles(user_id)
-
-    if message.sticker:
-        personal_smile = message.sticker.emoji
-    elif message.text:
-        personal_smile = message.text
-
-    if len(personal_smile) == 1 and contains_emojis(personal_smile):
-        if personal_smile in smileys:
-            await message.answer(f"{personal_smile} - этот смайлик находится в стандартном меню выбора, "
-                                 f"его нельзя удалять. Выберите другой.", reply_markup=show_button(["Вернуться"]))
-        elif not personal_smile in smile_list:
-            await message.answer(
-                f"{personal_smile} - этого смайлика нет в добавленных вами смайликах. Выберите другой.",
-                reply_markup=show_button(["Вернуться"]))
-        else:
-            await message.answer(f"Смайл {personal_smile} удален ✅")
-            await database.removePersonalSmile(user_id, personal_smile)
-            await state.set_state(None)
-            await database.setUserState(user_id, None)
-            await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
-    elif personal_smile == 'Вернуться':
-        await state.set_state(None)
-        await database.setUserState(user_id, None)
-        await database.setUserState(user_id, None)
-        await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
-    else:
-        await message.answer("Неправильный ввод! Отправьте смайлик.\n"
-                             "Если вы не хотите отправлять смайл, то выберите: 'Вернуться'",
-                             reply_markup=show_button(["Вернуться"]))
+    await state.set_state(None)
+    await database.setUserState(user_id, None)
+    await database.setUserState(user_id, None)
+    await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
 # -----------------------------------------------------------------------------------------------------------------------
@@ -580,6 +579,7 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
                 "Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
     elif is_premium and premium_end:
         await premiumIsEnd(user_id=user_id, state=state)
+
 
 
 # -----------------------------------------------------------------------------------------------------------------------

@@ -32,7 +32,7 @@ async def createUser(ID: int, name: str) -> None:
          "premium_status_end": "undefined", "prev_invoice_msg_id": None, "prev_smile_msg_id": None, "state": None})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
     await firestore_client.collection("Users").document(str(ID)).collection("states").document("message_id").set({
-        "stat_day": None, "stat_week": None, "stat_month": None, "stat_alltime": None})
+        "stat_day": None, "stat_week": None, "stat_month": None, "stat_alltime": None, "smile_remove": None})
 
 
 async def addEmojiUsed(ID: int) -> None:
