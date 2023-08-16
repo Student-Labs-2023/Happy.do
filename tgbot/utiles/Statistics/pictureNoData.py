@@ -1,5 +1,10 @@
+from io import BytesIO
+
 from PIL import Image, ImageDraw, ImageFont
 import os
+
+from tgbot.utiles.firebaseStorage import download_file_to_RAM
+
 
 def createPictureNoData(ID, date):
 
@@ -9,7 +14,8 @@ def createPictureNoData(ID, date):
     font_size = 40
 
     # Загрузка изображения фона
-    background_image = Image.open(os.getcwd() + r"\tgbot\utiles\Statistics\Config\logo3 (2).jpg")
+    file_data = download_file_to_RAM("logo.jpg")
+    background_image = Image.open(BytesIO(file_data.read()))
     background_image = background_image.resize((width, height))
 
     # Создание объекта рисования
@@ -27,8 +33,11 @@ def createPictureNoData(ID, date):
     draw.text((x, y), text, fill=text_color, font=font)
 
     # Сохранение изображения с текстом
-    result_image_path = os.getcwd() + fr"\tgbot\utiles\Statistics\Picture\ImageNoData{ID}.jpg"
-    background_image.save(result_image_path)
+    result_image = BytesIO()
+    background_image.save(result_image, format="JPEG")
+    result_image.seek(0)  # Сбрасываем позицию в начало буфера
 
-    return result_image_path
+
+    # return result_image_path
+    return result_image
 

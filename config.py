@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     BOT_TOKEN: SecretStr
     PAYMENTS_TOKEN: SecretStr
     OPENAI_API_KEY: SecretStr
+    FIREBASE_STORAGE_FOLDER_PATH: SecretStr
 
     WEBHOOK_HOST: str = 'host'
     WEBHOOK_PATH: str = f'/webhook/'
