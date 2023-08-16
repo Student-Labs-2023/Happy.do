@@ -384,7 +384,7 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
 
 @dp.message_handler(text=["Добавить смайлик"])
 async def addSmileToMenu(message: types.Message):
-    sent_message = await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
+    await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
 
 
 @dp.message_handler(text=["Добавить"])
