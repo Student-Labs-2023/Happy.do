@@ -305,8 +305,11 @@ async def getSmileInfo(ID: int, day: str):
         smiles = dict(sorted(info.to_dict().items()))
         return smiles
     else:
-        _ = info.to_dict()[day]
-        return list(_) if ", " not in _ else _.split(", ")  # Возвращает список смайликов за день
+        try:
+            _ = info.to_dict()[day]
+            return list(_) if ", " not in _ else _.split(", ")  # Возвращает список смайликов за день
+        except KeyError:
+            return []
 
 
 async def getCountAllUsers() -> int:

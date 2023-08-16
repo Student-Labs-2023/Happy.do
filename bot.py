@@ -572,7 +572,8 @@ async def show_emoji(message: types.Message):
         for i in smileListToDay:
             emoji_list = add_checkmark(emoji_list, i)
 
-    smile_msg = await message.reply(f'Выбранные смайлики:\n {"".join(smileListToDay)}', reply_markup=show_inline_button(emoji_list))
+    smile_msg = await message.reply(f'<b>Выбранные смайлики:</b>\n{"".join(smileListToDay)}',
+                                    reply_markup=show_inline_button(emoji_list), parse_mode="HTML")
 
     await database.updateSmileMsgID(message.from_user.id, smile_msg["message_id"])
 
@@ -594,7 +595,7 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
         if '✅' in selected_emoji:
             selected_emoji = selected_emoji.removesuffix('✅')
         # Проверяем, есть ли выбранный смайлик уже в списке выбранных
-        if selected_emoji not in selected_emojis :
+        if selected_emoji not in selected_emojis:
             # Если смайлика еще нет в списке выбранных, добавляем егb о
             selected_emojis.append(selected_emoji)
             await callback_query.answer("Вы выбрали смайлик ✅")
