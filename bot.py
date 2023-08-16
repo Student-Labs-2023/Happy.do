@@ -187,14 +187,17 @@ async def statisticUserWeek(message: types.Message):
         # await message.answer("Ваша статистика за неделю")
         sent_message = await bot.send_photo(chat_id=message.chat.id, photo=picture)
 
-        message_id = await database.getMessageId(user_id, "stat_week")
-        if message_id is not None:
-            try:
-                await bot.delete_message(chat_id=user_id, message_id=message_id)
-            except Exception as e:
-                print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
-        message_id = sent_message.message_id
-        await database.addMessageId(user_id, "stat_week", message_id)
+
+        # message_id = await database.getMessageId(user_id, "stat_week")
+        # if message_id is not None:
+        #     try:
+        #         await bot.delete_message(chat_id=user_id, message_id=message_id)
+        #     except Exception as e:
+        #         print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+        # message_id = sent_message.message_id
+        # await database.addMessageId(user_id, "stat_week", message_id)
+
+
         picture = None  # Убираем ссылку на объект и освобождаем память
     else:
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
@@ -208,14 +211,16 @@ async def statisticUserMonth(message: types.Message):
         # await message.answer("Ваша статистика за месяц")
         sent_message = await bot.send_photo(chat_id=message.chat.id, photo=picture)
 
-        message_id = await database.getMessageId(user_id, "stat_month")
-        if message_id is not None:
-            try:
-                await bot.delete_message(chat_id=user_id, message_id=message_id)
-            except Exception as e:
-                print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
-        message_id = sent_message.message_id
-        await database.addMessageId(user_id, "stat_month", message_id)
+        # message_id = await database.getMessageId(user_id, "stat_month")
+        # if message_id is not None:
+        #     try:
+        #         await bot.delete_message(chat_id=user_id, message_id=message_id)
+        #     except Exception as e:
+        #         print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+        # message_id = sent_message.message_id
+        # await database.addMessageId(user_id, "stat_month", message_id)
+
+
         picture = None  # Убираем ссылку на объект и освобождаем память
     else:
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")
@@ -228,14 +233,16 @@ async def statisticUserAll(message: types.Message):
     if isinstance(picture, BytesIO):
         sent_message = await bot.send_photo(chat_id=message.chat.id, photo=picture)
 
-        message_id = await database.getMessageId(user_id, "stat_alltime")
-        if message_id is not None:
-            try:
-                await bot.delete_message(chat_id=user_id, message_id=message_id)
-            except Exception as e:
-                print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
-        message_id = sent_message.message_id
-        await database.addMessageId(user_id, "stat_alltime", message_id)
+        # message_id = await database.getMessageId(user_id, "stat_alltime")
+        # if message_id is not None:
+        #     try:
+        #         await bot.delete_message(chat_id=user_id, message_id=message_id)
+        #     except Exception as e:
+        #         print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+        # message_id = sent_message.message_id
+        # await database.addMessageId(user_id, "stat_alltime", message_id)
+
+
         picture = None  # Убираем ссылку на объект и освобождаем память
     else:
         await message.answer("Недостаточно данных. Возможно вы еще не ввели смайлики за этот период.")

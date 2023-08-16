@@ -49,7 +49,7 @@ async def getData(ID, period, day):
         smilesList = await compilingList(smilesList)
     elif period == "week":
 
-        smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-day_counter(7, smilesDict):]]
+        smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-day_counter(8, smilesDict):]]
         smilesList = await compilingList(smilesList)
     elif period == "day":
         try:
