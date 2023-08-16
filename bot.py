@@ -117,10 +117,10 @@ async def buy(message: types.Message):
 
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
-    await message.answer(f'Привет, {message.from_user.first_name}!\nHappy.do – это бот, который помогает пользователям '
+    await message.answer(f'Привет, {message.from_user.first_name}!\n<b>Happy.dо</b> – это бот, который помогает пользователям '
                          f'отслеживать свое ежедневное состояние и деятельность с помощью смайликов. Это уникальный '
                          f'инструмент рефлексии, который помогает улучшить осознанность и поддерживать эмоциональное '
-                         f'здоровье.')
+                         f'здоровье.', parse_mode='HTML')
     user_exists = await database.checkUser(message.from_user.id)
     if not user_exists:
         await database.createUser(message.from_user.id, message.from_user.username)
@@ -559,21 +559,21 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
         if await database.getUsedGPT(user_id) < 2:
 
             smilesDict = await database.getSmileInfo(user_id, "all")
-
-            if len(smilesDict) < 7:
-                await message.answer("Слишком мало информации. Для получения портрета необходимо "
-                                     "ставить смайлики в течении 7 дней", reply_markup=show_button(buttons_menu))
+            count = statistics.day_counter(7, smilesDict)
+            if count <= 1:
+                await message.answer("Слишком мало информации. Для получения портрета необходимо выбрать смайлик"
+                                     , reply_markup=show_button(buttons_menu))
             else:
                 await message.answer("Портрет генерируется. Дождитесь завершения.",
                                      reply_markup=types.ReplyKeyboardRemove())
-                smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-7:]))
+                smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-count:]))
                 smiles = '\n'.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
 
                 portrait = await database.getExistingPortrait(smiles, "week")
                 if portrait == "NotExist":
                     portrait = await chatGPT.create_psychological_portrait_week(", ".join(smiles))
                     await database.addPortrait(smiles, portrait, "week")
-                await message.answer(portrait, reply_markup=show_button(buttons_menu))
+                await message.answer(f'<b>Количество дней когда вы выбирали смайлики за последнюю неделю:{count}</b> \n\n {portrait}', reply_markup=show_button(buttons_menu), parse_mode="HTML")
                 await database.addUsedGPT(user_id)
         else:
             await message.answer(
