@@ -13,9 +13,11 @@ from aiogram.utils.executor import start_webhook
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputFile, InputMediaPhoto
 from aiogram import Bot, types
 
+from tgbot.utiles.Midjourney import MJ
 from tgbot.utiles.Statistics import statistics, pictureNoData
-from tgbot.utiles import database, chatGPT
+from tgbot.utiles import database, chatGPT, dall_e
 from config import config
+from tgbot.utiles.chatGPT import generation_prompt
 from tgbot.utiles.supportFunctions import converting_dates_to_days, contains_emojis
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
@@ -491,11 +493,10 @@ async def backToMenuFromDeleteSmile(message: types.Message, state: FSMContext):
 
 
 # -----------------------------------------------------------------------------------------------------------------------
-"""Генерация портрета с помощью chatGPT"""
+"""Генерация портрета с помощью chatGPT и DALL-E"""
 
 
 # -----------------------------------------------------------------------------------------------------------------------
-
 
 @dp.message_handler(text=["Сгенерировать портрет"])
 async def generationPortrait(message: types.Message, state: FSMContext):
@@ -503,17 +504,37 @@ async def generationPortrait(message: types.Message, state: FSMContext):
     is_premium = await database.checkPremiumUser(message.from_user.id)
     premium_end = await database.checkPremiumIsEnd(user_id)
     if is_premium and not premium_end:
-        await message.answer("Выбери за какой период ты хочешь сгенерировать психологический портрет.",
-                             reply_markup=show_button(["За день", "За неделю", "Вернуться"]))
+        await message.answer("Выбери какой портрет ты хочешь сгенерировать.",
+                             reply_markup=show_button(["Текстовый за день",
+                                                       "Текстовый за неделю",
+                                                       "Визуальный за день",
+                                                       "Визуальный за неделю",
+                                                       "Вернуться"]))
     elif is_premium and premium_end:
         await premiumIsEnd(user_id=user_id, state=state)
     else:
         await message.answer(
-            "Для использования генерации психологического портрета с помощью chatGPT необходимо приобрести подписку\n"
+            "Для использования генерации психологического портрета необходимо приобрести подписку\n"
             "Выберите срок подписки:", reply_markup=show_button(premium_list_default))
 
 
-@dp.message_handler(text=["За день"])
+# @dp.message_handler(text=["ChatGPT"])
+# async def generationPortraitGPT(message: types.Message, state: FSMContext):
+#     user_id = message.from_user.id
+#     is_premium = await database.checkPremiumUser(message.from_user.id)
+#     premium_end = await database.checkPremiumIsEnd(user_id)
+#     if is_premium and not premium_end:
+#         await message.answer("Выбери за какой период ты хочешь сгенерировать психологический портрет.",
+#                              reply_markup=show_button(["За день", "За неделю", "Вернуться в меню"]))
+#     elif is_premium and premium_end:
+#         await premiumIsEnd(user_id=user_id, state=state)
+#     else:
+#         await message.answer(
+#             "Для использования генерации психологического портрета с помощью chatGPT необходимо приобрести подписку\n"
+#             "Выберите срок подписки:", reply_markup=show_button(premium_list_default))
+
+
+@dp.message_handler(text=["Текстовый за день"])
 async def generationPortraitDay(message: types.Message, state: FSMContext):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT за день. Если пользователь не вводил смайлики
@@ -523,7 +544,7 @@ async def generationPortraitDay(message: types.Message, state: FSMContext):
     is_premium = await database.checkPremiumUser(user_id)
     premium_end = await database.checkPremiumIsEnd(user_id)
     if is_premium and not premium_end:
-        if await database.getUsedGPT(user_id) < 2:
+        if await database.getUsedGPT(user_id) < 3:
             try:
                 smiles = await database.getSmileInfo(user_id, str(date.today()))
                 smiles = ", ".join(smiles)
@@ -531,7 +552,7 @@ async def generationPortraitDay(message: types.Message, state: FSMContext):
                                      reply_markup=types.ReplyKeyboardRemove())
                 portrait = await database.getExistingPortrait(smiles, "day")
                 if portrait == "NotExist":
-                    portrait = await chatGPT.create_psychological_portrait_day(", ".join(smiles))
+                    portrait = await chatGPT.create_psychological_portrait_day(smiles)
                     await database.addPortrait(smiles, portrait, "day")
                 await message.answer(portrait, reply_markup=show_button(buttons_menu))
                 await database.addUsedGPT(user_id)
@@ -545,7 +566,7 @@ async def generationPortraitDay(message: types.Message, state: FSMContext):
         await premiumIsEnd(user_id=user_id, state=state)
 
 
-@dp.message_handler(text=["За неделю"])
+@dp.message_handler(text=["Текстовый за неделю"])
 async def generationPortraitWeek(message: types.Message, state: FSMContext):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT за неделю. Если пользователь не вводил смайлики
@@ -555,7 +576,7 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
     is_premium = await database.checkPremiumUser(user_id)
     premium_end = await database.checkPremiumIsEnd(user_id)
     if is_premium and not premium_end:
-        if await database.getUsedGPT(user_id) < 2:
+        if await database.getUsedGPT(user_id) < 3:
 
             smilesDict = await database.getSmileInfo(user_id, "all")
             count = statistics.day_counter(7, smilesDict)
@@ -570,10 +591,86 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
 
                 portrait = await database.getExistingPortrait(smiles, "week")
                 if portrait == "NotExist":
-                    portrait = await chatGPT.create_psychological_portrait_week(", ".join(smiles))
+                    portrait = await chatGPT.create_psychological_portrait_week(smiles)
                     await database.addPortrait(smiles, portrait, "week")
                 await message.answer(f'<b>Количество дней когда вы выбирали смайлики за последнюю неделю:{count}</b> \n\n {portrait}', reply_markup=show_button(buttons_menu), parse_mode="HTML")
                 await database.addUsedGPT(user_id)
+        else:
+            await message.answer(
+                "Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
+    elif is_premium and premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
+
+
+@dp.message_handler(text=["Визуальный за день"])
+async def generationPortraitWeek(message: types.Message, state: FSMContext):
+    """
+    Отправляет пользователю сгенерированный психологический портрет DALL-E за день. Если пользователь не вводил смайлики
+    сегодня или вызывал команду генерации портрета более 2 раз, то он не генерируется.
+    """
+    user_id = message.from_user.id
+    is_premium = await database.checkPremiumUser(user_id)
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if is_premium and not premium_end:
+        if await database.getUsedGPT(user_id) < 3:
+            smiles = await database.getSmileInfo(user_id, str(date.today()))
+            if len(smiles):
+                smiles = ", ".join(smiles)
+                await message.answer("Портрет генерируется. Дождитесь завершения.",
+                                     reply_markup=types.ReplyKeyboardRemove())
+                # portrait = await database.getExistingPortrait(smiles, "day")
+                # if portrait == "NotExist":
+                #     portrait = await chatGPT.create_psychological_portrait_day(smiles)
+                #     await database.addPortrait(smiles, portrait, "day")
+                portrait = await dall_e.create_picture_day(smiles)
+                await database.addUsedGPT(user_id)
+                await message.answer("Ваш портрет за день")
+                await bot.send_photo(user_id, portrait, reply_markup=show_button(buttons_menu))
+            else:
+                await message.answer("Вы не выбрали ни одного смайлика за сегодня.",
+                                     reply_markup=show_button(buttons_menu))
+        else:
+            await message.answer(
+                "Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")
+    elif is_premium and premium_end:
+        await premiumIsEnd(user_id=user_id, state=state)
+
+
+@dp.message_handler(text=["Визуальный за неделю"])
+async def generationPortraitWeek(message: types.Message, state: FSMContext):
+    """
+    Отправляет пользователю сгенерированный психологический портрет DALL-E за неделю. Если пользователь не вводил смайлики
+    хотя бы 7 дней или вызывал эту команду более 2 раз, то портрет не генерируется.
+    """
+    user_id = message.from_user.id
+    is_premium = await database.checkPremiumUser(user_id)
+    premium_end = await database.checkPremiumIsEnd(user_id)
+    if is_premium and not premium_end:
+        if await database.getUsedGPT(user_id) < 3:
+
+            smilesDict = await database.getSmileInfo(user_id, "all")
+            print(smilesDict)
+            count = statistics.day_counter(7, smilesDict)
+            if count <= 1:
+                await message.answer("Слишком мало информации. Для получения портрета необходимо выбрать смайлик"
+                                     , reply_markup=show_button(buttons_menu))
+            else:
+                await message.answer("Портрет генерируется. Дождитесь завершения.",
+                                     reply_markup=types.ReplyKeyboardRemove())
+                smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-count:]))
+                print(smilesDict)
+                smiles = '; '.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
+                print(smiles)
+                # portrait = await database.getExistingPortrait(smiles, "week")
+                # if portrait == "NotExist":
+                #     portrait = await chatGPT.create_psychological_portrait_week(", ".join(smiles))
+                #     await database.addPortrait(smiles, portrait, "week")
+                # prompt = await generation_prompt(smiles, "week")
+                # print(prompt)
+                portrait = await dall_e.create_picture_week(smiles)
+                await database.addUsedGPT(user_id)
+                await message.answer("Ваш портрет за неделю")
+                await bot.send_photo(user_id, portrait, reply_markup=show_button(buttons_menu))
         else:
             await message.answer(
                 "Превышен лимит использований команды на сегодня. Попробуйте сгенерировать портрет завтра")

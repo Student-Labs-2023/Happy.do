@@ -70,3 +70,28 @@ async def create_psychological_portrait_day(smilesDay: str) -> str:
     )
 
     return chat_completion_resp.choices[0].message.content
+
+
+async def generation_prompt(smiles: str, period: str) -> str:
+
+    chat_completion_resp = await openai.ChatCompletion.acreate(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": f'Пользователь в течении {"дня" if period == "day" else "недели"} '
+                                          f'отправлял телеграм-боту смайлики, '
+                                          'которые характеризовали его эмоциональное состояние на момент '
+                                          'отправки смайлика. Ты получаешь эти смайлики  '
+                                          'одной строкой по дням через запятую и затем '
+                                          'составляешь очень короткий в 3 предложения промпт для визуального психологического портрета '
+                                          'пользователя по его смайликам. '
+                                          'В качестве вывода ты отправляешь ему'
+                                          'сгенерированный промпт'
+             },  # Задаем поведение помощнику
+            {"role": "user", "content": f"Create a prompt to generate a visual psychological portrait."
+                                        f"\n{smiles}"}
+            # Задаем вопрос боту
+        ],
+        max_tokens=700
+    )
+
+    return chat_completion_resp.choices[0].message.content
