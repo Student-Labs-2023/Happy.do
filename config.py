@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     WEBHOOK_PATH: str = f'/webhook/'
 
     WEBAPP_HOST: str
-    WEBAPP_PORT: int
+    WEBAPP_PORT: int = 8080
 
     PATH_FIREBASE_KEY: str
-    PATH_CONTENT_FILE: str
+    PATH_CONTENT_FILE: str = 'happy.do-bot.content.yaml'
 
     ADMIN_ID: List[int]
 

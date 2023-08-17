@@ -42,7 +42,8 @@ async def on_startup(dispatcher):
 
 
 async def on_shutdown(dispatcher):
-    await bot.delete_webhook()
+    # await bot.delete_webhook()
+    pass
 
 
 smileys = [
