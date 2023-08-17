@@ -8,7 +8,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import Dispatcher, FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from aiogram.utils.exceptions import MessageToDeleteNotFound, MessageCantBeDeleted
+from aiogram.utils.exceptions import MessageToDeleteNotFound, MessageCantBeDeleted, MessageToEditNotFound
 from aiogram.utils.executor import start_webhook
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, BotCommand, \
     BotCommandScopeDefault
@@ -808,11 +808,14 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
         await database.addOrChangeSmile(callback_query.from_user.id, str(date.today()), selected_emojis)
 
         emoji_list = smileys + await database.getPersonalSmiles(user_id)
-        await callback_query.message.edit_text(
-            "Выбранные смайлики:\n" + "".join(
-                selected_emojis) if selected_emojis else "Выбранных смайликов пока нет",
-            reply_markup=show_inline_button(emoji_list, selected_emojis)
-        )
+        try:
+            await callback_query.message.edit_text(
+                "Выбранные смайлики:\n" + "".join(
+                    selected_emojis) if selected_emojis else "Выбранных смайликов пока нет",
+                reply_markup=show_inline_button(emoji_list, selected_emojis)
+            )
+        except MessageToEditNotFound:
+            pass
 
 
 async def set_state(user_id, state: FSMContext):
