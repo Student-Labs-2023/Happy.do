@@ -13,11 +13,9 @@ from aiogram.utils.executor import start_webhook
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputFile, InputMediaPhoto
 from aiogram import Bot, types
 
-from tgbot.utiles.Midjourney import MJ
 from tgbot.utiles.Statistics import statistics, pictureNoData
 from tgbot.utiles import database, chatGPT, dall_e
 from config import config
-from tgbot.utiles.chatGPT import generation_prompt
 from tgbot.utiles.supportFunctions import converting_dates_to_days, contains_emojis
 
 bot = Bot(token=config.BOT_TOKEN.get_secret_value())
@@ -39,7 +37,7 @@ class UserState(StatesGroup):
 
 
 async def on_startup(dispatcher):
-    await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+    # await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
     await setUserStateFromDB()
 
 
@@ -490,6 +488,14 @@ async def backToMenuFromDeleteSmile(message: types.Message, state: FSMContext):
     await state.set_state(None)
     await database.setUserState(user_id, None)
     await database.setUserState(user_id, None)
+    message_id = await database.getMessageId(user_id, "smile_remove")
+
+    if message_id is not None:
+        try:
+            await bot.delete_message(chat_id=user_id, message_id=message_id)
+        except Exception as e:
+            print(f"Не удалось удалить сообщение с ID {message_id}: {e}")
+
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
