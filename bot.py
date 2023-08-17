@@ -105,7 +105,12 @@ premium_list_state = ["1 месяц", "6 месяцев", "1 год"]
 async def send_invoice(chat_id, time, price):
     prevInvoiceMsg = await database.getPrevInvoiceMsgID(chat_id)
     if prevInvoiceMsg is not None:
-        await bot.delete_message(chat_id=chat_id, message_id=prevInvoiceMsg)
+        try:
+            await bot.delete_message(chat_id=chat_id, message_id=prevInvoiceMsg)
+        except MessageToDeleteNotFound:
+            pass
+        except MessageCantBeDeleted:
+            pass
 
     PRICE = types.LabeledPrice(label=f"Подписка на {time}", amount=price * 100)
     Invoice = await bot.send_invoice(
