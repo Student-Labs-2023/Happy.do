@@ -10,8 +10,10 @@ from tgbot.utiles.firebaseStorage import download_file_to_RAM
 
 """ Круговая диаграмма """
 def createCircularChart(ID, labels, sizes, day):
-    plt.style.use(
-        fr"{os.getcwd()}\tgbot\utiles\Statistics\Config\pitayasmoothie-dark.mplstyle")  # Утанавливает стиль
+    # style = download_file_to_RAM(
+    #     "pitayasmoothie-dark.mplstyle")
+    # style.seek(0)
+    plt.style.use("https://firebasestorage.googleapis.com/v0/b/happydo-7c1a5.appspot.com/o/pitayasmoothie-dark.mplstyle?alt=media&token=967d45d0-f2e1-46a3-91a1-1e5a655875a7")  # Утанавливает стиль
     matplotlib.rcParams['font.family'] = ["Segoe UI Emoji", "DejaVu Sans"]  # Меняет шрифт в стиле
     matplotlib.rcParams['font.size'] = 13  # Меняет размер шрифта в стиле
     fig, ax = plt.subplots()  # устанавливает размеры гистограммы
