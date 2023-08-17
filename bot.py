@@ -64,7 +64,7 @@ async def set_commands(bot: Bot):
         ),
         BotCommand(
             command='add',
-            description='Выбрать смайлик'
+            description='Добавить смайлик'
         ),
         BotCommand(
             command='generate',
