@@ -1,22 +1,25 @@
 from pydantic_settings import BaseSettings
 from pydantic import SecretStr
 
+from typing import List
+
 
 class Settings(BaseSettings):
     BOT_TOKEN: SecretStr
     PAYMENTS_TOKEN: SecretStr
     OPENAI_API_KEY: SecretStr
+    FIREBASE_STORAGE_FOLDER_PATH: SecretStr
 
     WEBHOOK_HOST: str = 'host'
     WEBHOOK_PATH: str = f'/webhook/'
 
     WEBAPP_HOST: str
-    WEBAPP_PORT: int
+    WEBAPP_PORT: int = 8080
 
     PATH_FIREBASE_KEY: str
-    PATH_CONTENT_FILE: str
+    PATH_CONTENT_FILE: str = 'happy.do-bot.content.yaml'
 
-    ADMIN_ID: int
+    ADMIN_ID: List[int]
 
     class Config:
         env_file = '.env'

@@ -49,7 +49,7 @@ async def getData(ID, period, day):
         smilesList = await compilingList(smilesList)
     elif period == "week":
 
-        smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-day_counter(7, smilesDict):]]
+        smilesList = [smilesDict[i] for i in list(smilesDict.keys())[-day_counter(8, smilesDict):]]
         smilesList = await compilingList(smilesList)
     elif period == "day":
         try:
@@ -104,5 +104,8 @@ async def analiticData(ID, period, day=str(date.today())):
         maxKeys.append('Другие')
 
     """ Вызов создания круговой диаграммы """
-    return diagrams.createCircularChart(ID, maxKeys, sizes, day if period == 'day' else '')
+    return diagrams.createCircularChart(ID, maxKeys, sizes,
+                                        day if period == 'day' else (
+                                            "за неделю." if period == 'week' else (
+                                                'за месяц.' if period == 'month' else "за все время.")))
 

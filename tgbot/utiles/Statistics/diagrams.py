@@ -1,12 +1,19 @@
+from io import BytesIO
+from PIL import Image
+
+
 import matplotlib.pyplot as plt
 import matplotlib, os
 import numpy as np
 
+from tgbot.utiles.firebaseStorage import download_file_to_RAM
 
 """ Круговая диаграмма """
 def createCircularChart(ID, labels, sizes, day):
-    plt.style.use(
-        fr"{os.getcwd()}\tgbot\utiles\Statistics\Config\pitayasmoothie-dark.mplstyle")  # Утанавливает стиль
+    # style = download_file_to_RAM(
+    #     "pitayasmoothie-dark.mplstyle")
+    # style.seek(0)
+    plt.style.use("https://firebasestorage.googleapis.com/v0/b/happydo-7c1a5.appspot.com/o/pitayasmoothie-dark.mplstyle?alt=media&token=967d45d0-f2e1-46a3-91a1-1e5a655875a7")  # Утанавливает стиль
     matplotlib.rcParams['font.family'] = ["Segoe UI Emoji", "DejaVu Sans"]  # Меняет шрифт в стиле
     matplotlib.rcParams['font.size'] = 13  # Меняет размер шрифта в стиле
     fig, ax = plt.subplots()  # устанавливает размеры гистограммы
@@ -23,41 +30,50 @@ def createCircularChart(ID, labels, sizes, day):
     ax.pie(sizes, labels=labels, autopct='%1.1f%%', pctdistance=0.8, radius=1, colors=outer_colors,
            wedgeprops=dict(width=0.4, edgecolor='w'))
 
-    img = plt.imread(os.getcwd() + r"\tgbot\utiles\Statistics\Config\logo3 (2).jpg")
+    # img = plt.imread(os.getcwd() + r"\tgbot\utiles\Statistics\Config\logo3 (2).jpg")
+    file_data = download_file_to_RAM("logo.jpg")
+    img = Image.open(BytesIO(file_data.read()))
     ax.imshow(img, zorder=0, extent=[-0.695, 0.705, -0.65, 0.75])
 
-    fig.savefig(os.getcwd() + fr'\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg', transparent=False, dpi=200,
+    # fig.savefig(os.getcwd() + fr'\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg', transparent=False, dpi=200,
+    #             bbox_inches="tight")  # сохранение картинки
+    picture = BytesIO()
+    fig.savefig(picture, transparent=False, dpi=200,
                 bbox_inches="tight")  # сохранение картинки
+    picture.seek(0)
 
-    plt.clf()
+    # plt.clf()
+    plt.close(fig)
 
-    return fr"{os.getcwd()}\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg"
-
+    # return fr"{os.getcwd()}\tgbot\utiles\Statistics\Picture\circular{str(ID)}.jpg"
+    return picture
 
 
 """ Гистограмма """
-def createBarChart(ID, labels, days, day):
-    plt.style.use(
-        fr"{os.getcwd()}\tgbot\utiles\Statistics\Config\pitayasmoothie-dark.mplstyle")  # Утанавливает стиль
-    matplotlib.rcParams['font.family'] = ["Segoe UI Emoji", "DejaVu Sans"]  # Меняет шрифт в стиле
-    matplotlib.rcParams['font.size'] = 13  # Меняет размер шрифта в стиле
-    fig, ax = plt.subplots()  # устанавливает размеры гистограммы
-
-    plt.suptitle(f"Наиболее часто используемые смайлики\n{day}", fontname="Franklin Gothic Medium",
-                 fontsize=20)
-
-    """ Статистика по наиболее часто используемым смайликам """
-    ax.bar(labels, days)  # создание гистограммы
-
-
-    ax.set_xlabel('Smiles', fontsize=15)
-    ax.set_ylabel('Days', fontsize=15)
-    ax.set_ylim(-0.5, 30)  # разлиновка по у
-
-    fig.savefig(os.getcwd() + r'\tgbot\utiles\Statistics\Picture\Bar.png', transparent=False, dpi=80,
-                bbox_inches="tight")  # сохранение картинки
-
-    plt.clf()
-
-    return rf"{os.getcwd()}\tgbot\utiles\Statistics\Picture\Bar{str(ID)}.jpg"
+# def createBarChart(ID, labels, days, day):
+#     plt.style.use(
+#         fr"{os.getcwd()}\tgbot\utiles\Statistics\Config\pitayasmoothie-dark.mplstyle")  # Утанавливает стиль
+#     matplotlib.rcParams['font.family'] = ["Segoe UI Emoji", "DejaVu Sans"]  # Меняет шрифт в стиле
+#     matplotlib.rcParams['font.size'] = 13  # Меняет размер шрифта в стиле
+#     fig, ax = plt.subplots()  # устанавливает размеры гистограммы
+#
+#     plt.suptitle(f"Наиболее часто используемые смайлики\n{day}", fontname="Franklin Gothic Medium",
+#                  fontsize=20)
+#
+#     """ Статистика по наиболее часто используемым смайликам """
+#     ax.bar(labels, days)  # создание гистограммы
+#
+#
+#     ax.set_xlabel('Smiles', fontsize=15)
+#     ax.set_ylabel('Days', fontsize=15)
+#     ax.set_ylim(-0.5, 30)  # разлиновка по у
+#
+#     fig.savefig(os.getcwd() + r'\tgbot\utiles\Statistics\Picture\Bar.png', transparent=False, dpi=80,
+#                 bbox_inches="tight")  # сохранение картинки
+#
+#     # plt.clf()
+#     plt.close(fig)
+#
+#
+#     return rf"{os.getcwd()}\tgbot\utiles\Statistics\Picture\Bar{str(ID)}.jpg"
 

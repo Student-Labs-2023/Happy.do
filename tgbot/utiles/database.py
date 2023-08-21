@@ -31,6 +31,8 @@ async def createUser(ID: int, name: str) -> None:
          "date_registration_premium": "undefined",
          "premium_status_end": "undefined", "prev_invoice_msg_id": None, "prev_smile_msg_id": None, "state": None})
     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").set({})
+    await firestore_client.collection("Users").document(str(ID)).collection("states").document("message_id").set({
+        "stat_day": None, "stat_week": None, "stat_month": None, "stat_alltime": None, "smile_remove": None})
 
 
 async def addEmojiUsed(ID: int) -> None:
@@ -136,27 +138,6 @@ async def addOrChangeSmile(ID: int, day: str, smilesList: []) -> None:
         await addOrRemoveValuesSmileInfo(smilesList, pastSmilesList)
         await firestore_client.collection("Users").document(str(ID)).collection("smile").document(
             "date").update({day: firestore.DELETE_FIELD})
-
-    # Переделать админку под новую возможность отправлять несколько смайликов за раз
-    #     await addOrRemoveValuesSmileInfo(smile[0], False)
-
-    # if '✅' in smile:
-    #     await firestore_client.collection("Users").document(str(ID)).collection("smile").document(str(date.today())).update(
-    #         {"smile": firestore.DELETE_FIELD})
-    #     await addOrRemoveValuesSmileInfo(smile[0], False)
-    # else:
-    #     await firestore_client.collection("Users").document(str(ID)).collection("smile").document("date").update(
-    #         {day: smile})
-
-    # doc_exist = await firestore_client.collection("Smile info").document(str(date.today())).get()
-    # if doc_exist.exists:
-    #     smile_exist_today = await checkSmileExistToday(smiles)
-    #     if smile_exist_today:
-    #         await addOrRemoveValuesSmileInfo(smiles, True)
-    #     else:
-    #         await firestore_client.collection("Smile info").document(str(date.today())).update({smiles: '1'})
-    # else:
-    #     await firestore_client.collection("Smile info").document(str(date.today())).set({smiles: '1'})
 
 
 async def checkSmileExistToday(smile) -> bool:
@@ -275,10 +256,8 @@ async def addUsedGPT(ID: int) -> None:
 
     :param ID: Telegram user ID
     """
-    info = await firestore_client.collection("Users").document(str(ID)).get()
 
-    value = info.to_dict()["used_GPT"]
-    await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": value + 1})
+    await firestore_client.collection("Users").document(str(ID)).update({"used_GPT": firestore.Increment(1)})
 
 
 async def getUsedGPT(ID: int) -> int:
@@ -326,8 +305,11 @@ async def getSmileInfo(ID: int, day: str):
         smiles = dict(sorted(info.to_dict().items()))
         return smiles
     else:
-        _ = info.to_dict()[day]
-        return list(_) if ", " not in _ else _.split(", ")  # Возвращает список смайликов за день
+        try:
+            _ = info.to_dict()[day]
+            return list(_) if ", " not in _ else _.split(", ")  # Возвращает список смайликов за день
+        except KeyError:
+            return []
 
 
 async def getCountAllUsers() -> int:
@@ -424,7 +406,7 @@ async def getStatAdmin(days_range: int) -> list:
 
 async def premiumStatus(ID: int, period: str) -> None:
     """
-    Функция premiumStatus используется для изменения статуса пользователя после покупки премиума в БД.
+    Функция premiumStatus используется для изменения статуса пользователя после покупки подписки.
 
     :param period: Дата окончания подписки
     :param ID: Telegram user ID
@@ -435,7 +417,23 @@ async def premiumStatus(ID: int, period: str) -> None:
                                                                          "premium_status_end": period})
 
 
+async def removePremiumStatus(ID: int) -> None:
+    """
+    Функция removePremiumStatus используется для изменения статуса пользователя после окончания срока подписки.
+
+    :param ID: Telegram user ID
+    """
+
+    await firestore_client.collection("Users").document(str(ID)).update({"status": "default"})
+
+
 async def checkPremiumUser(ID: int) -> bool:
+    """
+    Функция checkPremiumUser используется для проверки, есть ли у юзера премиум, возвращает True, если да, иначе False.
+
+    :param ID: Telegram user ID
+    """
+
     info = await firestore_client.collection("Users").document(str(ID)).get()
     info = info.to_dict()["status"]
     if info == "premium":
@@ -445,9 +443,34 @@ async def checkPremiumUser(ID: int) -> bool:
 
 
 async def infoPremiumUser(ID: int) -> str:
+    """
+    Функция infoPremiumUser используется для получения информации до какого числа активен премиум статус.
+
+    :param ID: Telegram user ID
+    """
+
     info = await firestore_client.collection("Users").document(str(ID)).get()
     Date = info.to_dict()["premium_status_end"]
     return f"У вас активен премиум статус до {Date}"
+
+
+async def checkPremiumIsEnd(ID: int) -> bool:
+    """
+    Функция checkPremiumIsEnd используется для проверки, закончился ли срок подписки у юзера.
+
+    :param ID: Telegram user ID
+    """
+
+    info = await firestore_client.collection("Users").document(str(ID)).get()
+    premium_end_date = info.to_dict()["premium_status_end"]
+    if premium_end_date == 'undefined':
+        return False
+    elif premium_end_date < str(date.today()):
+        print(f"{premium_end_date} > {date.today()}")
+        return True
+    else:
+        print(f"{premium_end_date}  {date.today()}")
+        return False
 
 
 async def updateInvoiceMsgID(ID: int, msg_id: int) -> None:
@@ -513,7 +536,7 @@ async def getUsersState() -> dict | None:
     return StateDict
 
 
-async def setUserState(ID: int, state: str):
+async def setUserState(ID: int, state: str | None):
     """
     Функция setUserState используется для обновления поля 'state'.
 
@@ -521,4 +544,39 @@ async def setUserState(ID: int, state: str):
     :param state: Состояние пользователя
     :return:
     """
+    print(ID)
     await firestore_client.collection("Users").document(str(ID)).update({"state": state})
+
+
+async def getMessageId(ID: int, message: str) -> int:
+    """
+    Функция getMessageId используется для получения id сообщения.
+
+    :param ID: Telegram user ID..
+    :param message: Наименование сообщения.
+
+    :return: Id сообщения.
+    """
+    info = await firestore_client.collection("Users").document(str(ID)).collection("states").document("message_id").get()
+    if message in info.to_dict():
+        info = info.to_dict()[message]
+    else:
+        await firestore_client.collection("Users").document(str(ID)).collection("states").document("message_id").update(
+            {message: None})
+        info = None
+
+    return info
+
+
+async def addMessageId(ID: int, message: str, message_id: int) -> None:
+    """
+    Функция addMessageId используется для добавления id сообщения в БД.
+
+    :param ID: Telegram user ID..
+    :param message: Наименование сообщения.
+    :param message_id: Id сообщения.
+    """
+
+    info = await firestore_client.collection("Users").document(str(ID)).collection("states").document(
+        "message_id").update({message: message_id})
+
