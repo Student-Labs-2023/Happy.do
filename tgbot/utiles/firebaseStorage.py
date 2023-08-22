@@ -4,16 +4,11 @@ from uuid import uuid4
 import firebase_admin
 from firebase_admin import credentials, storage
 
-# from config import config
+from config import config
 
-# cred = credentials.Certificate(config.PATH_FIREBASE_KEY)
-# firebase_admin.initialize_app(cred, {
-#     'storageBucket': config.FIREBASE_STORAGE_FOLDER_PATH.get_secret_value()
-# })
-
-cred = credentials.Certificate("D:\Projects\python\Happy.do\happydo-7c1a5-firebase-adminsdk-wc62m-58263683b7.json")
+cred = credentials.Certificate(config.PATH_FIREBASE_KEY)
 firebase_admin.initialize_app(cred, {
-    'storageBucket': "happydo-7c1a5.appspot.com"
+    'storageBucket': config.FIREBASE_STORAGE_FOLDER_PATH.get_secret_value()
 })
 
 bucket = storage.bucket()
@@ -73,6 +68,3 @@ def download_file_to_RAM(storage_path: str) -> BytesIO:
     file_data = blob.download_as_bytes()
 
     return BytesIO(file_data)
-
-
-
