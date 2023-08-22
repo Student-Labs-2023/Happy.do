@@ -16,23 +16,23 @@ from tgbot.utiles.firebaseStorage import download_file_to_RAM
 
 """ Круговая диаграмма """
 def createCircularChart(ID, labels, sizes, day):
-    """
-    Функция createCircularChart используется для создания круговых диаграмм статистики.
-
-    !!!Если шрифты не работают!!!
-    Чтобы работали шрифты, необходимо предварительно добавить шрифты в формате .ttf в папку (в проекте уже имеются)
-    \venv\Lib\site-packages\matplotlib\mpl-data\fonts\ttf.
-    Затем удалить кеш (единственный файл) в папке С:\windows\users\<user>\.matplotlib\<file>.
-    Далее, после запуска скрипта, создастся новый файл с кешом, который уже будет иметь эти шрифты.
-
-    Для докер-образа также нужно удалить этот файл.
-
-    :param ID: ID пользователя.
-    :param labels: Названия частей (смайлики и если больше 5 значений, то доп секция "Другие").
-    :param sizes: Размены каждой части.
-    :param day: День для указания его в лейбле.
-    :return: Картинку в виде байтов сохраненную в оперативке.
-    """
+    # """
+    # Функция createCircularChart используется для создания круговых диаграмм статистики.
+    #
+    # !!!Если шрифты не работают!!!
+    # Чтобы работали шрифты, необходимо предварительно добавить шрифты в формате .ttf в папку (в проекте уже имеются)
+    # \venv\Lib\site-packages\matplotlib\mpl-data\fonts\ttf.
+    # Затем удалить кеш (единственный файл) в папке С:\windows\users\<user>\.matplotlib\<file>.
+    # Далее, после запуска скрипта, создастся новый файл с кешом, который уже будет иметь эти шрифты.
+    #
+    # Для докер-образа также нужно удалить этот файл.
+    #
+    # :param ID: ID пользователя.
+    # :param labels: Названия частей (смайлики и если больше 5 значений, то доп секция "Другие").
+    # :param sizes: Размеры каждой части.
+    # :param day: День для указания его в лейбле.
+    # :return: Картинку в виде байтов сохраненную в оперативке.
+    # """
 
     # style = download_file_to_RAM(
     #     "pitayasmoothie-dark.mplstyle")
@@ -50,6 +50,7 @@ def createCircularChart(ID, labels, sizes, day):
     prop2 = FontProperties(fname=r"D:\Projects\python\Happy.do\tgbot\utiles\Statistics\Config\NotoEmoji-Medium.ttf")
     prop3 = FontProperties(fname=r"D:\Projects\python\Happy.do\venv\Lib\site-packages\matplotlib\mpl-data\fonts\ttf\Dejavuserifcondensed Bolditalic.ttf")
     prop1 = FontProperties(fname=r"D:\Projects\python\Happy.do\venv\Lib\site-packages\matplotlib\mpl-data\fonts\ttf\seguiemj.ttf")
+    propTitle = FontProperties(fname=r"D:\Projects\python\Happy.do\venv\Lib\site-packages\matplotlib\mpl-data\fonts\ttf\ofont.ru_Franklin Gothic Medium.ttf")
     # matplotlib._rebuild()
     # matplotlib._fmcache
 
@@ -73,7 +74,7 @@ def createCircularChart(ID, labels, sizes, day):
     fig, ax = plt.subplots()  # устанавливает размеры гистограммы
 
     ax.set_title(f"Наиболее часто используемые смайлики\n{day}", fontsize=15,
-                 fontname="Franklin Gothic Medium")  # заголовок гистограммы
+                 fontname=propTitle.get_name())  # заголовок гистограммы
 
     """ Диаграмма """
     # цвета
