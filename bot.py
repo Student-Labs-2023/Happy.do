@@ -119,6 +119,7 @@ async def start(message: types.Message):
     user_exists = await database.checkUser(message.from_user.id)
     if not user_exists:
         await database.createUser(message.from_user.id, message.from_user.username)
+        await help_msg(message)
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(CONTENT.keyboard_buttons.menu))
 
 
@@ -133,6 +134,18 @@ async def statisticUserBack(message: types.Message):
 
 
 # -----------------------------------------------------------------------------------------------------------------------
+@dp.message_handler(commands=['help'])
+async def help_msg(message: types.Message):
+    await message.answer(
+        f'<b><i>Как мною пользоваться?</i></b>\n\nВыбирай смайлики, смотри статистику, можешь добавить смайлики, '
+        f'которые тебе нравятся, а также расширяй свои возможности, подключив premium!!!\n\n'
+        f'<b>Список моих функций:</b>\n\n'
+        f'<b>😄Выбрать смайлик</b> - таблица выбора смайликов за день\n\n'
+        f'<b>➕Добавить смайлик</b> - добавление или удаление персональных смайликов в таблицу выбора\n\n'
+        f'<b>📊Статистика</b> - статистика за различные периоды времени\n\n'
+        f'<b>PREMIUM 🖼️Сгенерировать портрет</b> - генерация текстового или графического портрета на основе статистики с помощью нейросети\n\n'
+        f'<b>💎Премиум</b> - подключение премиума',
+        parse_mode='HTML')
 
 
 @dp.message_handler(text=["📊Статистика"])
@@ -602,7 +615,6 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
         if await database.getUsedGPT(user_id) < 3:
 
             smilesDict = await database.getSmileInfo(user_id, "all")
-            print(smilesDict)
             count = statistics.day_counter(7, smilesDict)
             if count <= 1:
                 await message.answer("Слишком мало информации. Для получения портрета необходимо выбрать смайлик"
@@ -611,9 +623,7 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
                 await message.answer("Портрет генерируется. Дождитесь завершения.",
                                      reply_markup=types.ReplyKeyboardRemove())
                 smilesDict = converting_dates_to_days(dict(list(smilesDict.items())[-count:]))
-                print(smilesDict)
                 smiles = '; '.join('{}: {}'.format(key, val) for key, val in smilesDict.items())  # Словарь в строку
-                print(smiles)
                 prompt = await chatGPT.generation_prompt(smiles, "week")
                 portrait = await dall_e.create_picture_week(prompt)
                 await database.addUsedGPT(user_id)
@@ -700,7 +710,6 @@ async def button(callback_query: types.CallbackQuery, state: FSMContext):
             selected_emojis.remove(selected_emoji)
             await callback_query.answer("Смайлик снят ❌")
 
-        print(selected_emojis)
         await database.addOrChangeSmile(callback_query.from_user.id, str(date.today()), selected_emojis)
 
         emoji_list = CONTENT.buttons + await database.getPersonalSmiles(user_id)
