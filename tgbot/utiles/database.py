@@ -196,24 +196,6 @@ async def addOrRemoveValuesSmileInfo(smilesList: [], pastSmilesList: []) -> None
                         newDict[smile] -= 1
             await firestore_client.collection("Smile info").document(str(date.today())).set(newDict)
 
-    # if add:
-    #     if not pastSmilesList:
-
-    # Переделать под новый ввод большего числа смайликов
-    # for smile in smilesList: # возможно нужно добавить async
-    #     info = await firestore_client.collection("Smile info").document(str(date.today())).get()
-    #     if add:
-    #         await firestore_client.collection("Smile info").document(str(date.today())).update(
-    #             {smile: str(int(info.to_dict()[smile]) + 1)})
-    #     else:
-    #         # Сделать нормальное удаление прошлого значения, не всего поля, а одного значения
-    #         if int(info.to_dict()[smile]) == 1:
-    #             await firestore_client.collection("Smile info").document(str(date.today())).update(
-    #                 {smile: firestore.DELETE_FIELD})
-    #         else:
-    #             await firestore_client.collection("Smile info").document(str(date.today())).update(
-    #                 {smile: str(int(info.to_dict()[smile]) - 1)})
-
 
 async def addPortrait(body: str, text: str, period: str) -> None:
     """
