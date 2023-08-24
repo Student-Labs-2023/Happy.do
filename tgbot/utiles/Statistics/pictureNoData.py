@@ -22,8 +22,8 @@ def createPictureNoData(ID, date):
     draw = ImageDraw.Draw(background_image)
 
     # Загрузка шрифта
-    # font_path = os.getcwd() + r"\tgbot\utiles\Statistics\Config\ofont.ru_Franklin Gothic Medium.ttf"
-    font_path = download_file_to_RAM("ofont.ru_Franklin Gothic Medium.ttf")
+    # font_path = os.getcwd() + r"\tgbot\utiles\Statistics\Config\FranklinGothicMedium.ttf"
+    font_path = download_file_to_RAM("FranklinGothicMedium.ttf")
     font = ImageFont.truetype(BytesIO(font_path.read()), font_size)
 
     text = f"{date} - Нет данных"

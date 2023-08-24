@@ -466,10 +466,8 @@ async def checkPremiumIsEnd(ID: int) -> bool:
     if premium_end_date == 'undefined':
         return False
     elif premium_end_date < str(date.today()):
-        print(f"{premium_end_date} > {date.today()}")
         return True
     else:
-        print(f"{premium_end_date}  {date.today()}")
         return False
 
 
@@ -532,7 +530,6 @@ async def getUsersState() -> dict | None:
             StateDict[user_data.id] = user_state
     if StateDict == {}:
         return None
-    print(StateDict)
     return StateDict
 
 
@@ -544,7 +541,6 @@ async def setUserState(ID: int, state: str | None):
     :param state: Состояние пользователя
     :return:
     """
-    print(ID)
     await firestore_client.collection("Users").document(str(ID)).update({"state": state})
 
 
@@ -557,7 +553,8 @@ async def getMessageId(ID: int, message: str) -> int:
 
     :return: Id сообщения.
     """
-    info = await firestore_client.collection("Users").document(str(ID)).collection("states").document("message_id").get()
+    info = await firestore_client.collection("Users").document(str(ID)).collection("states").document(
+        "message_id").get()
     if message in info.to_dict():
         info = info.to_dict()[message]
     else:
@@ -579,4 +576,3 @@ async def addMessageId(ID: int, message: str, message_id: int) -> None:
 
     info = await firestore_client.collection("Users").document(str(ID)).collection("states").document(
         "message_id").update({message: message_id})
-

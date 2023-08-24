@@ -17,13 +17,3 @@ def converting_dates_to_days(dates_dict: {}) -> {}:
         for day, value in dates_dict.items()
     }
     return new_dict
-
-
-def contains_emojis(text) -> bool:
-    """
-    Функция contains_emojis используется для определения кастомных смайликов, возвращает True, если смайлик кастомный.
-
-    :param text: Текст со смайликом
-    """
-
-    return bool(demoji.findall(text))
