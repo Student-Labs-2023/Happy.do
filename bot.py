@@ -38,13 +38,13 @@ class UserState(StatesGroup):
 
 
 async def on_startup(dispatcher):
-    # await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+    await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
     await set_commands(bot)
     await setUserStateFromDB()
 
 
 async def on_shutdown(dispatcher):
-    # await bot.delete_webhook()
+    await bot.delete_webhook()
     pass
 
 
@@ -674,7 +674,8 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
                 # if portrait == "NotExist":
                 #     portrait = await chatGPT.create_psychological_portrait_day(smiles)
                 #     await database.addPortrait(smiles, portrait, "day")
-                portrait = await dall_e.create_picture_day(smiles)
+                prompt = await chatGPT.generation_prompt(smiles, "day")
+                portrait = await dall_e.create_picture_day(prompt)
                 await database.addUsedGPT(user_id)
                 await message.answer("Ваш портрет за день")
                 await bot.send_photo(user_id, portrait, reply_markup=show_button(buttons_menu))
@@ -719,7 +720,8 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
                 #     await database.addPortrait(smiles, portrait, "week")
                 # prompt = await generation_prompt(smiles, "week")
                 # print(prompt)
-                portrait = await dall_e.create_picture_week(smiles)
+                prompt = await chatGPT.generation_prompt(smiles, "week")
+                portrait = await dall_e.create_picture_week(prompt)
                 await database.addUsedGPT(user_id)
                 await message.answer("Ваш портрет за неделю")
                 await bot.send_photo(user_id, portrait, reply_markup=show_button(buttons_menu))
@@ -754,7 +756,7 @@ def add_checkmark(lst, variable):
     return [elem + "✅" if elem == variable else elem for elem in lst]
 
 
-@dp.message_handler(text=["Выбрать смайлик😄"])
+@dp.message_handler(text=["😄Выбрать смайлик"])
 @dp.message_handler(commands=['choice'])
 async def show_emoji(message: types.Message):
     emoji_list = smileys + await database.getPersonalSmiles(message.from_user.id)
