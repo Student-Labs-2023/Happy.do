@@ -56,23 +56,23 @@ async def set_commands(bot: Bot):
         ),
         BotCommand(
             command='stats',
-            description='Статистика'
+            description='📊Статистика'
         ),
         BotCommand(
             command='choice',
-            description='Выбрать смайлик'
+            description='😄Выбрать смайлик'
         ),
         BotCommand(
             command='add',
-            description='Добавить смайлик'
+            description='➕Добавить смайлик'
         ),
         BotCommand(
             command='generate',
-            description='Сгенерировать портрет'
+            description='🖼️Сгенерировать портрет'
         ),
         BotCommand(
             command='premium',
-            description='Приобрести премиум подписку'
+            description='💎Приобрести премиум подписку'
         ),
         BotCommand(
             command='cancel',
@@ -91,14 +91,14 @@ smileys = [
     "😣", "😥", "😪", "😫", "😴"]
 
 """списки для кнопок"""
-buttons_menu = ["Статистика", "Выбрать смайлик", "Добавить смайлик", "Сгенерировать портрет", "Премиум"]
+buttons_menu = ["📊Статистика", "😄Выбрать смайлик", "➕Добавить смайлик", "🖼️Сгенерировать портрет", "💎Премиум"]
 
-buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться"]
+buttons_stat = ["День", "Неделя", "Месяц", "Все время", "Вернуться↩️"]
 admin_menu = ["Кол-во новых пользователей за неделю", "Общее кол-во пользователей", "Статистика за день",
               "Статистика за неделю", "Статистика за месяц", "Выйти"]
-buttons_addSmileToMenu = ["Добавить", "Удалить", "Вернуться"]
+buttons_addSmileToMenu = ["Добавить🟢", "Удалить🔴", "Вернуться↩️"]
 
-premium_list_default = ["1 месяц", "6 месяцев", "1 год", "Вернуться"]
+premium_list_default = ["1 месяц", "6 месяцев", "1 год", "Вернуться↩️"]
 premium_list_state = ["1 месяц", "6 месяцев", "1 год"]
 
 
@@ -131,14 +131,14 @@ async def send_invoice(chat_id, time, price):
     await database.updateInvoiceMsgID(chat_id, Invoice["message_id"])
 
 
-@dp.message_handler(text=["Премиум"])
+@dp.message_handler(text=["💎Премиум"])
 @dp.message_handler(commands=['premium'])
 async def premium(message: types.Message, state: FSMContext):
     is_premium = await database.checkPremiumUser(message.from_user.id)
     premium_end = await database.checkPremiumIsEnd(message.from_user.id)
     if is_premium and not premium_end:
         await message.reply(await database.infoPremiumUser(message.from_user.id),
-                            reply_markup=show_button(["Вернуться"]))
+                            reply_markup=show_button(["Вернуться↩️"]))
     elif is_premium and premium_end:
         await premiumIsEnd(user_id=message.from_user.id, state=state)
     else:
@@ -172,7 +172,7 @@ async def start(message: types.Message):
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
-@dp.message_handler(text=["Вернуться"])
+@dp.message_handler(text=["Вернуться↩️"])
 @dp.message_handler(commands=['cancel'])
 async def statisticUserBack(message: types.Message):
     await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
@@ -185,7 +185,7 @@ async def statisticUserBack(message: types.Message):
 # -----------------------------------------------------------------------------------------------------------------------
 
 
-@dp.message_handler(text=["Статистика"])
+@dp.message_handler(text=["📊Статистика"])
 @dp.message_handler(commands=['stats'])
 async def statisticUser(message: types.Message, state: FSMContext):
     user_id = message.from_user.id  # ID чата
@@ -423,13 +423,13 @@ async def update_message_with_offset(message: types.Message, state: FSMContext, 
 # -----------------------------------------------------------------------------------------------------------------------
 
 
-@dp.message_handler(text=["Добавить смайлик"])
+@dp.message_handler(text=["➕Добавить смайлик"])
 @dp.message_handler(commands=['add'])
 async def addSmileToMenu(message: types.Message):
     await message.answer("Выберите действие", reply_markup=show_button(buttons_addSmileToMenu))
 
 
-@dp.message_handler(text=["Добавить"])
+@dp.message_handler(text=["Добавить🟢"])
 async def addSmile(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     premium_end = await database.checkPremiumIsEnd(user_id)
@@ -439,7 +439,7 @@ async def addSmile(message: types.Message, state: FSMContext):
         personal_smiles = await database.getPersonalSmiles(message.from_user.id)
         if len(personal_smiles) < 10:
             await message.answer("Отправьте смайлик, который вы хотите добавить. Премиум смайлики добавлять нельзя.",
-                                 reply_markup=show_button(["Вернуться"]))
+                                 reply_markup=show_button(["Вернуться↩️"]))
             await UserState.personal_smile_add.set()
             await database.setUserState(message.from_user.id, 'personal_smile_add')
         else:
@@ -467,21 +467,21 @@ async def addPersonalSmile(message: types.Message, state: FSMContext):
             await state.set_state(None)
             await database.setUserState(user_id, None)
             await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
-    elif personal_smile == 'Вернуться' or '/cancel':
+    elif personal_smile == 'Вернуться↩️' or '/cancel':
         await state.set_state(None)
         await database.setUserState(user_id, None)
         await message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
     elif len(personal_smile) > 1 and contains_emojis(personal_smile):
         await message.answer(
             "Неправильный ввод! \nПохоже, вы использовали специальный смайлик, который может быть доступен только на определенных "
-            "устройствах. \nПовторите попытку или нажмите 'Вернуться'.", reply_markup=show_button(["Вернуться"]))
+            "устройствах. \nПовторите попытку или нажмите 'Вернуться↩️'.", reply_markup=show_button(["Вернуться↩️"]))
     else:
         await message.answer("Неправильный ввод! \nВозможно, вы отправили специальный смайлик, который может быть "
                              "доступен только на определенных устройствах, или вы отправили текст. \n"
-                             "Повторите попытку или нажмите 'Вернуться'.", reply_markup=show_button(["Вернуться"]))
+                             "Повторите попытку или нажмите 'Вернуться↩️'.", reply_markup=show_button(["Вернуться↩️"]))
 
 
-@dp.message_handler(text=["Удалить"])
+@dp.message_handler(text=["Удалить🔴"])
 async def deleteSmile(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
     premium_end = await database.checkPremiumIsEnd(user_id)
@@ -493,7 +493,7 @@ async def deleteSmile(message: types.Message, state: FSMContext):
             sent_message = await message.answer("Отправьте смайлик, который вы хотите удалить.",
                                                 reply_markup=show_inline_button(personal_smiles))
             await message.answer("Если вы не хотите удалять смайлик, то можете вернуться обратно в меню.",
-                                 reply_markup=show_button(["Вернуться"]))
+                                 reply_markup=show_button(["Вернуться↩️"]))
             message_id = sent_message.message_id
             await database.addMessageId(user_id, "smile_remove", message_id)
             await UserState.personal_smile_remove.set()
@@ -523,7 +523,7 @@ async def deletePersonalSmile(callback_query: types.CallbackQuery, state: FSMCon
     await callback_query.message.answer('Выбери что тебя интересует', reply_markup=show_button(buttons_menu))
 
 
-@dp.message_handler(text=["Вернуться"], state=UserState.personal_smile_remove)
+@dp.message_handler(text=["Вернуться↩️"], state=UserState.personal_smile_remove)
 @dp.message_handler(commands=['cancel'], state=UserState.personal_smile_remove)
 async def backToMenuFromDeleteSmile(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
@@ -547,7 +547,7 @@ async def backToMenuFromDeleteSmile(message: types.Message, state: FSMContext):
 
 # -----------------------------------------------------------------------------------------------------------------------
 
-@dp.message_handler(text=["Сгенерировать портрет"])
+@dp.message_handler(text=["🖼️Сгенерировать портрет"])
 @dp.message_handler(commands=['generate'])
 async def generationPortrait(message: types.Message, state: FSMContext):
     user_id = message.from_user.id
@@ -555,11 +555,11 @@ async def generationPortrait(message: types.Message, state: FSMContext):
     premium_end = await database.checkPremiumIsEnd(user_id)
     if is_premium and not premium_end:
         await message.answer("Выбери какой портрет ты хочешь сгенерировать.",
-                             reply_markup=show_button(["Текстовый за день",
-                                                       "Текстовый за неделю",
-                                                       "Визуальный за день",
-                                                       "Визуальный за неделю",
-                                                       "Вернуться"]))
+                             reply_markup=show_button(["Текстовый за день📝",
+                                                       "Текстовый за неделю📝",
+                                                       "Визуальный за день🖼",
+                                                       "Визуальный за неделю🖼",
+                                                       "Вернуться↩️"]))
     elif is_premium and premium_end:
         await premiumIsEnd(user_id=user_id, state=state)
     else:
@@ -584,7 +584,7 @@ async def generationPortrait(message: types.Message, state: FSMContext):
 #             "Выберите срок подписки:", reply_markup=show_button(premium_list_default))
 
 
-@dp.message_handler(text=["Текстовый за день"])
+@dp.message_handler(text=["Текстовый за день📝"])
 async def generationPortraitDay(message: types.Message, state: FSMContext):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT за день. Если пользователь не вводил смайлики
@@ -616,7 +616,7 @@ async def generationPortraitDay(message: types.Message, state: FSMContext):
         await premiumIsEnd(user_id=user_id, state=state)
 
 
-@dp.message_handler(text=["Текстовый за неделю"])
+@dp.message_handler(text=["Текстовый за неделю📝"])
 async def generationPortraitWeek(message: types.Message, state: FSMContext):
     """
     Отправляет пользователю сгенерированный психологический портрет chatGPT за неделю. Если пользователь не вводил смайлики
@@ -654,7 +654,7 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
         await premiumIsEnd(user_id=user_id, state=state)
 
 
-@dp.message_handler(text=["Визуальный за день"])
+@dp.message_handler(text=["Визуальный за день🖼"])
 async def generationPortraitWeek(message: types.Message, state: FSMContext):
     """
     Отправляет пользователю сгенерированный психологический портрет DALL-E за день. Если пользователь не вводил смайлики
@@ -688,7 +688,7 @@ async def generationPortraitWeek(message: types.Message, state: FSMContext):
         await premiumIsEnd(user_id=user_id, state=state)
 
 
-@dp.message_handler(text=["Визуальный за неделю"])
+@dp.message_handler(text=["Визуальный за неделю🖼"])
 async def generationPortraitWeek(message: types.Message, state: FSMContext):
     """
     Отправляет пользователю сгенерированный психологический портрет DALL-E за неделю. Если пользователь не вводил смайлики
@@ -754,7 +754,7 @@ def add_checkmark(lst, variable):
     return [elem + "✅" if elem == variable else elem for elem in lst]
 
 
-@dp.message_handler(text=["Выбрать смайлик"])
+@dp.message_handler(text=["Выбрать смайлик😄"])
 @dp.message_handler(commands=['choice'])
 async def show_emoji(message: types.Message):
     emoji_list = smileys + await database.getPersonalSmiles(message.from_user.id)
