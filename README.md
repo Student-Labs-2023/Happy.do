@@ -7,9 +7,11 @@
 ```
 ngrok http 8080
 ```
-4. Скопировать https адрес напротив "Forwarding" и вставить в .env в переменную "WEBHOOK_HOST"
+4. Скопировать https адрес напротив "Forwarding" и вставить в .env в переменную "WEBHOOK_HOST" 
 
 ![image](https://github.com/Student-Labs-2023/Happy.do/assets/80484896/8af6e93e-fe76-466e-bbda-241272ad88a7)
+
+(также в ADMIN_ID можно вставить свой telegram id для использования /admin в боте)
 
 5. В файле bot.py раскомментировать 35 и 41 строку
    
