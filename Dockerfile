@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+ARG PYTHON_VERSION=3.11
+FROM python:${PYTHON_VERSION}-slim-bullseye
 
 LABEL authors="Tema"
 
@@ -10,6 +11,8 @@ RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt --no-cache-dir
 
 COPY . .
+RUN mkdir -p /usr/share/fonts/truetype/ && \
+    install -m644 Fonts/* /usr/share/fonts/truetype/
 
 EXPOSE 8080
 
